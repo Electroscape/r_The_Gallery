@@ -20,32 +20,13 @@
 #include <stb_led.h>
 #include <stb_oled.h>
 
-// uncomment to use
-#define DEBUGMODE 0
-
-// == LEDS ================================================//
-
-#define RFID_1_LED_PIN 9  // Per Konvention ist dies RFID-Port 1
-#define RFID_2_LED_PIN 6  // Per Konvention ist dies RFID-Port 2
-#define RFID_3_LED_PIN 5  // Per Konvention ist dies RFID-Port 3
-#define RFID_4_LED_PIN 3  // Per Konvention ist dies RFID-Port 4
-#define PWM_PINS \
-    (int[]) { RFID_1_LED_PIN, RFID_2_LED_PIN, RFID_3_LED_PIN, RFID_4_LED_PIN }
-
-#define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
-#define STRIPE_CNT 3
-
+// defining necessary neopixel objects and variables
 Adafruit_NeoPixel LED_Strips[STRIPE_CNT];
 
-// If using the breakout with SPI, define the pins for SPI communication.
-#define PN532_SCK 13
-#define PN532_MOSI 11
-#define PN532_MISO 12
-
-#define RFID_1_SS_PIN 8  // Per Konvention ist dies RFID-Port 1
-#define RFID_2_SS_PIN 7  // Per Konvention ist dies RFID-Port 2
-#define RFID_3_SS_PIN 4  // Per Konvention ist dies RFID-Port 3
-#define RFID_4_SS_PIN 2  // Per Konvention ist dies RFID-Port 4
+const long int clrRed = LED_Strips[0].Color(255, 0, 0);  //red
+const long int clrGreen = LED_Strips[0].Color(0, 255, 0);  //green
+const long int clrYellow = LED_Strips[0].Color(255, 255, 0);  //Yellow
+const long int clrBlack = LED_Strips[0].Color(0, 0, 0);  //black
 
 const byte RFID_SSPins[] = {
     RFID_1_SS_PIN,
@@ -104,12 +85,7 @@ void setup() {
 
     Serial.println();
     Serial.println("LED: ... ");
-    if (LED_init()) {
-        Serial.println("LED: OK!");
-    } else {
-        Serial.println("LED: FAILED!");
-    };
-
+    if (STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG)) {Serial.println("LED: OK!");} else {Serial.println("LED: FAILED!");}
     wdt_reset();
 
 #ifndef OLED_DISABLE
@@ -189,61 +165,6 @@ void loop() {
     }
 }
 
-/**
- * Set LED to specific color
- *
- * @param i byte of LED index
- *        color_str string color name (red, green, white, gold, black)
- * @return void
- */
-void NeoPixel_StripeOn(byte i, String color_str) {
-    uint32_t color;
-
-    if (color_str == "red") {
-        color = LED_Strips[0].Color(255, 0, 0);  //red
-    } else if (color_str == "green") {
-        color = LED_Strips[0].Color(0, 255, 0);  //green
-    } else if (color_str == "white") {
-        color = LED_Strips[0].Color(255, 0, 0, 0);  //white
-    } else if (color_str == "gold") {
-        color = LED_Strips[0].Color(255, 70, 0);  //gold
-    } else if (color_str == "yellow") {
-        color = LED_Strips[0].Color(255, 255, 0);  //gold
-    } else if (color_str == "black") {
-        color = LED_Strips[0].Color(0, 0, 0);  //black
-    } else {
-        color = LED_Strips[0].Color(0, 0, 0);  //schwarz
-    }
-
-    LED_Strips[i].setPixelColor(0, color);
-    LED_Strips[i].show();
-}
-
-/**
- * Switch LED off black
- *
- * @param i byte LED index
- * @return void
- */
-void NeoPixel_StripeOff(byte i) {
-    long int color_black = LED_Strips[0].Color(0, 0, 0);
-
-    LED_Strips[i].setPixelColor(0, color_black);
-    LED_Strips[i].show();
-}
-
-/**
- * Switch LED to GREEN
- *
- * @param i byte LED index
- * @return void
- */
-void NeoPixel_StripeEndGame(byte i) {
-    long int color_green = LED_Strips[0].Color(0, 255, 0);
-
-    LED_Strips[i].setPixelColor(0, color_green);
-    LED_Strips[i].show();
-}
 
 // RFID functions
 /**
@@ -377,25 +298,6 @@ bool RFID_Status() {
     return false;
 }
 
-void rainbow(u8 i) {
-    uint32_t rainbowColors[] = {
-        LED_Strips[i].Color(255, 0, 0), //red
-        LED_Strips[i].Color(255, 165, 0), //orange
-        LED_Strips[i].Color(255, 255, 0), //yellow
-        LED_Strips[i].Color(0, 128, 0), //green
-        LED_Strips[i].Color(0, 0, 255), //blue
-        LED_Strips[i].Color(75, 0, 130), //purple
-        LED_Strips[i].Color(238, 130, 238), //pink
-        LED_Strips[i].Color(255, 255, 255) //white
-    };
-    wdt_reset();
-    for(u32 color: rainbowColors) {
-        LED_Strips[i].setPixelColor(0, color);
-        LED_Strips[i].show();
-        delay(1000);
-        wdt_reset();
-    }
-}
 
 #ifndef OLED_DISABLE
 /**
@@ -443,18 +345,18 @@ void Update_LEDs() {
 
     if (sum == 2 * RFID_AMOUNT) {
         for (size_t i = 0; i < RFID_AMOUNT; i++) {
-            NeoPixel_StripeOn(i, "green");
+            STB_LED::setStripToClr(LED_Strips[i], clrGreen);
         }
     } else if (noZero) {
         for (size_t i = 0; i < RFID_AMOUNT; i++) {
-            NeoPixel_StripeOn(i, "red");
+            STB_LED::setStripToClr(LED_Strips[i], clrRed);
         }
     } else {
         for (size_t i = 0; i < RFID_AMOUNT; i++) {
             if (cards_solution[i] == 0) {
-                NeoPixel_StripeOn(i, "black");
+                STB_LED::setStripToClr(LED_Strips[i], clrBlack);
             } else {
-                NeoPixel_StripeOn(i, "yellow");
+                STB_LED::setStripToClr(LED_Strips[i], clrYellow);
             }
         }
     }
@@ -540,35 +442,6 @@ bool data_correct(int current_reader, uint8_t* data) {
     return result == current_reader;
 }
 
-//==FUNCTIONS=========================================//
-/**
- * Initialise LEDs library
- *
- * @param i byte LED index
- * @return void
- */
-void NeoPixel_init(byte i) {
-    LED_Strips[i] = Adafruit_NeoPixel(NEOPIXEL_NR_OF_PIXELS, PWM_PINS[i], CLR_ORDER + NEO_KHZ800);
-    LED_Strips[i].begin();
-    // rainbow(i);
-}
-
-/**
- * Initialise LEDs and switch them off
- * @param void
- * @return void
- * @note uses NeoPixel_init() function
- */
-bool LED_init() {
-    for (size_t i = 0; i < STRIPE_CNT; i++) {
-        NeoPixel_init(i);
-    }
-    delay(100);
-    for (size_t i = 0; i < STRIPE_CNT; i++) {
-        NeoPixel_StripeOff(i);
-    }
-    return true;
-}
 
 /**
  * Initialise RFID
