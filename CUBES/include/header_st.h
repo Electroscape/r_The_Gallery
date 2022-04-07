@@ -64,9 +64,12 @@ enum REL_INIT {
 };
 
 #define REL_AMOUNT 2
-const enum REL_PIN relayPinArray[] = {
+
+int relayPinArray[REL_AMOUNT] = {
     REL_ROOM_LI_PIN,
-    REL_SCHW_LI_PIN};
-const enum REL_INIT relayInitArray[] = {
+    REL_SCHW_LI_PIN
+};
+int relayInitArray[REL_AMOUNT] = {
     REL_ROOM_LI_INIT,
-    REL_SCHW_LI_INIT};
+    REL_SCHW_LI_INIT
+};

@@ -109,11 +109,7 @@ void setup() {
 
     Serial.println();
     Serial.println("Relay: ... ");
-    if (relay_init()) {
-        Serial.println("Relay: OK!");
-    } else {
-        Serial.println("Relay: FAILED!");
-    };
+    STB::relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
 
     wdt_reset();
     delayStart = millis();  // start delay
@@ -493,26 +489,4 @@ bool RFID_init() {
     return success;
 }
 
-/**
- * Initialise Relays on I2C
- *
- * @param void
- * @return true when done
- */
-bool relay_init() {
-    Serial.println("initializing relay");
-    relay.begin(RELAY_I2C_ADD);
 
-    for (int i = 0; i < REL_AMOUNT; i++) {
-        relay.pinMode(relayPinArray[i], OUTPUT);
-        relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
-        Serial.print("     ");
-        Serial.print("Relay [");
-        Serial.print(relayPinArray[i]);
-        Serial.print("] set to ");
-        Serial.println(relayInitArray[i]);
-    }
-    Serial.println();
-    Serial.println("successfully initialized relay");
-    return true;
-}
