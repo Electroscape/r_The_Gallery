@@ -13,14 +13,12 @@
 // Setting Configurations
 #include "header_s.h"
 
-// I2C Port Expander
-#include <SPI.h>
-#include <Wire.h>
-
-#include "PCF8574.h"
-
-// Watchdog timer
+#include <stb_common.h>
 #include <avr/wdt.h>
+
+#include <stb_rfid.h>
+#include <stb_led.h>
+#include <stb_oled.h>
 
 // uncomment to use
 #define DEBUGMODE 0
@@ -34,16 +32,10 @@
 #define PWM_PINS \
     (int[]) { RFID_1_LED_PIN, RFID_2_LED_PIN, RFID_3_LED_PIN, RFID_4_LED_PIN }
 
-// NeoPixel
-#include <Adafruit_NeoPixel.h>   // Ueber Bibliotheksverwalter
-                                 // NeoPixel
 #define NEOPIXEL_NR_OF_PIXELS 1  // Anzahl der Pixel auf einem Strang (Test 1 Pixel)
 #define STRIPE_CNT 3
 
 Adafruit_NeoPixel LED_Strips[STRIPE_CNT];
-
-// == PN532 imports and setup
-#include <Adafruit_PN532.h>
 
 // If using the breakout with SPI, define the pins for SPI communication.
 #define PN532_SCK 13
@@ -98,18 +90,18 @@ unsigned long delayStart = 0;  // the time the delay started
 bool delayRunning = false;     // true if still waiting for delay to finish
 
 //==PCF8574==============================/
-Expander_PCF8574 relay;
-
-//==Serial Printing======================/
-const int ctrlPin = A0;  // the control pin of max485 rs485 LOW read, HIGH write
+PCF8574 relay;
 
 /*======================================
 //===SETUP==============================
 //====================================*/
 void setup() {
-    brainSerialInit();
+    STB::begin();
     Serial.println("WDT endabled");
     wdt_enable(WDTO_8S);
+
+    STB::i2cScanner();
+
     Serial.println();
     Serial.println("LED: ... ");
     if (LED_init()) {
@@ -119,14 +111,6 @@ void setup() {
     };
 
     wdt_reset();
-
-    Serial.println();
-    Serial.println("I2C: ... ");
-    if (i2cScanner()) {
-        Serial.println("I2C: OK!");
-    } else {
-        Serial.println("I2C: FAILED!");
-    };
 
 #ifndef OLED_DISABLE
     Serial.print(F("Oleds: ..."));
@@ -157,7 +141,7 @@ void setup() {
 
     wdt_reset();
     delayStart = millis();  // start delay
-    printWithHeader("Setup Complete", "SYS");
+    STB::printSetupEnd();
 }
 
 /*======================================
@@ -197,7 +181,7 @@ void loop() {
             EndBlock = true;
             Serial.println("Restart in required!");
             wdt_disable();
-            printWithHeader("Game Complete", "SYS");
+            STB::printWithHeader("Game Complete", "SYS");
         }
     } else {
         Update_LEDs();
@@ -315,7 +299,7 @@ void RFID_loop() {
         //Serial.print(cards_present[reader_nr]);Serial.println(cards_solution[reader_nr]);
         if (cards_solution[reader_nr] != cards_present[reader_nr]) {
             cards_solution[reader_nr] = cards_present[reader_nr];
-            printWithHeader("Cards Changed", "SYS");
+            STB::printWithHeader("Cards Changed", "SYS");
             runOnce = false;
             printStats = true;
         }
@@ -370,7 +354,7 @@ bool RFID_Status() {
         msg += " ";
     }
 
-    printWithHeader(msg, relayCode);
+    // printWithHeader(msg, relayCode);
 #ifndef OLED_DISABLE
     oled.clear();
     oled.println();
@@ -382,13 +366,13 @@ bool RFID_Status() {
 #ifndef OLED_DISABLE
         oled.println("          Correct");
 #endif
-        printWithHeader("!Correct", relayCode);
+        STB::printWithHeader("!Correct", relayCode);
         return true;
     } else if (noZero) {
 #ifndef OLED_DISABLE
         oled.println("          Wrong");
 #endif
-        printWithHeader("!Wrong", relayCode);
+        STB::printWithHeader("!Wrong", relayCode);
     }
     return false;
 }
@@ -571,7 +555,6 @@ void NeoPixel_init(byte i) {
 
 /**
  * Initialise LEDs and switch them off
- *
  * @param void
  * @return void
  * @note uses NeoPixel_init() function
@@ -614,7 +597,7 @@ bool RFID_init() {
                 Serial.println("Didn't find PN53x board");
                 if (retries > 5) {
                     Serial.println("PN532 startup timed out, restarting");
-                    softwareReset();
+                    STB::softwareReset();
                 }
             } else {
                 Serial.print("Found chip PN5");

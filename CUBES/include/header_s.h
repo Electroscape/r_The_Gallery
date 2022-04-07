@@ -1,6 +1,4 @@
 #pragma once
-#include "stb_namespace.h"
-using namespace stb_namespace;
 
 String title = "Stuttgart Gallery A/B";
 String versionDate = "02.02.2021";
