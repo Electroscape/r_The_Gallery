@@ -89,10 +89,8 @@ void setup() {
     wdt_reset();
 
 #ifndef OLED_DISABLE
-    Serial.print(F("Oleds: ..."));
-    if (oled_init()) {
-        Serial.println(" light OLED ok...");
-    }
+    STB_OLED::oledInit(oled, SH1106_128x64);
+    oledHomescreen();
 #endif
 
     wdt_reset();
@@ -296,23 +294,6 @@ bool RFID_Status() {
 
 
 #ifndef OLED_DISABLE
-/**
- * Initialize Oled
- *
- * @param void
- * @return true (bool) on success
- */
-bool oled_init() {
-    // &SH1106_128x64 &Adafruit128x64
-    Serial.print(F("Oled init\n"));
-    oled.begin(&SH1106_128x64, OLED_ADD);
-    oled.set400kHz();
-    oled.setScroll(true);
-    oledHomescreen();
-    delay(1000);
-    return true;
-}
-
 void oledHomescreen() {
     oled.clear();
     oled.setFont(Adafruit5x7);
