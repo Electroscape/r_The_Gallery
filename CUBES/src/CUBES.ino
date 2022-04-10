@@ -83,9 +83,7 @@ void setup() {
 
     STB::i2cScanner();
 
-    Serial.println();
-    Serial.println("LED: ... ");
-    if (STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG)) {Serial.println("LED: OK!");} else {Serial.println("LED: FAILED!");}
+    STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG);
     wdt_reset();
 
 #ifndef OLED_DISABLE
@@ -105,8 +103,6 @@ void setup() {
 
     wdt_reset();
 
-    Serial.println();
-    Serial.println("Relay: ... ");
     STB::relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
 
     wdt_reset();
