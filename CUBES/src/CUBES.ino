@@ -93,13 +93,11 @@ void setup() {
 
     wdt_reset();
 
-    Serial.println();
-    Serial.println("RFID: ... ");
-    if (RFID_init()) {
-        Serial.println("RFID: OK!");
-    } else {
-        Serial.println("RFID: FAILED!");
-    };
+    for (int i = 0; i < RFID_AMOUNT; i++) {
+        Serial.print("\n\ninitializing reader: "); Serial.println(i);
+        STB_RFID::RFIDInit(RFID_READERS[i]);
+        wdt_reset();
+    }
 
     wdt_reset();
 
