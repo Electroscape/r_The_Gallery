@@ -117,14 +117,14 @@ void loop() {
 
     if (!EndBlock) {
         wdt_reset();
-        RFID_loop();
-        Update_LEDs();
+        readRFIDs();
+        
         wdt_reset();
 
         //Game Solved
-        if (RFID_Status() && !runOnce) {
+        if (true && !runOnce) {
             Serial.println("GATE OPEN");
-            Update_LEDs();
+           
             //0.1 sec delay between correct msg and relay switch
             delay(100);
             relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
@@ -148,7 +148,7 @@ void loop() {
             STB::printWithHeader("Game Complete", "SYS");
         }
     } else {
-        Update_LEDs();
+        // Update_LEDs();
         delay(500);
     }
 }
@@ -161,202 +161,59 @@ void loop() {
  * @param void
  * @return void
  */
-void RFID_loop() {
-    uint8_t success;
-    uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};  // Buffer to store the returned UID
-    uint8_t uidLength;
+void readRFIDs() {
     uint8_t data[16];
-
-    int cards_present[RFID_AMOUNT] = {0};  //compare with previous card stats to detect card changes
-
-    for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
-        wdt_reset();
-        //Serial.print("reader ");Serial.print(reader_nr);Serial.print(":");
-
-        success = RFID_READERS[reader_nr].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-        if (success) {
-            //Serial.println(" Yes");
-
-            if (uidLength != 4) {  //Card is not Mifare classic, discarding card
-                Serial.println("False Card!");
-                continue;
-            }
-
-            if (!read_PN532(reader_nr, data, uid, uidLength)) {
-                Serial.println("read failed");
-                continue;
-            } else {
-                //Valid card present
-                cards_present[reader_nr] = 1;
-
-                //Update data
-                data[RFID_SOLUTION_SIZE - 1] = '\0';
-                strncpy(RFID_reads[reader_nr], (char*)data, RFID_SOLUTION_SIZE);
-            }
-
-            if (!data_correct(reader_nr, data)) {
-                //Serial.print(cards_present[reader_nr]);Serial.print(cards_solution[reader_nr]);
-                //continue;
-            } else {
-                cards_present[reader_nr] = 2;
-            }
-        } else {
-            //Serial.println(" No");
-            //cards_present[reader_nr] = 0;
-            //Serial.print(cards_present[reader_nr]);Serial.print(cards_solution[reader_nr]);
-        }
-        //Serial.print(cards_present[reader_nr]);Serial.println(cards_solution[reader_nr]);
-        if (cards_solution[reader_nr] != cards_present[reader_nr]) {
-            cards_solution[reader_nr] = cards_present[reader_nr];
-            STB::printWithHeader("Cards Changed", "SYS");
-            runOnce = false;
-            printStats = true;
-        }
-        //delay(1);
-    }
-}
-
-/**
- * Checks and prints the status of the RFID
- *
- * @param void
- * @return void
- * @note It prints the header manually! better modify and constuct a string
- *       then send the string with printwithheader function
- */
-bool RFID_Status() {
-    if (!printStats)
-        return false;
-
-    printStats = false;
-    // Struct status message:
+    int cards_present[RFID_AMOUNT] = {0};
     String msg = "";
 
-    bool noZero = true;
-    int sum = 0;
-    size_t j;  //index for wrong solution card
-    for (uint8_t i = 0; i < RFID_AMOUNT; i++) {
-        sum += cards_solution[i];
-        if (cards_solution[i] == 2) {
-            msg += "C";
-            msg.concat(i + 1);
-        } else if (cards_solution[i] == 1) {
-            bool found = false;
-            for (j = 0; j < RFID_AMOUNT; j++) {
-                if (strcmp(RFID_solutions[j], RFID_reads[i]) == 0) {
-                    found = true;
-                    break;
+    for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
+
+        if (STB_RFID::cardRead(RFID_READERS[reader_nr], data, 1)) {
+            cards_present[reader_nr]++;
+
+            // evaluate which card is read 
+            for (uint8_t solution_nr = 0; solution_nr < RFID_AMOUNT; solution_nr++) {
+                if (strcmp(RFID_solutions[reader_nr], (char *) data)) {
+                    msg += "C";
+                    msg.concat(solution_nr + 1);
+                    if (solution_nr == reader_nr) {
+                        cards_present[reader_nr]++;
+                    } 
+                } else if (reader_nr + 1 == RFID_AMOUNT) {
+                    msg += "UK";
                 }
             }
-            if (found) {
-                msg += "C";
-                msg.concat(j + 1);
-            } else {
-                msg += "XX";
-            }
-        } else if (cards_solution[i] == 0) {
-            noZero = false;
-            msg += "__";
+        // no card present
         } else {
-            msg += "Uk";
+            msg += "__";
         }
+
         msg += " ";
-    }
 
-    // printWithHeader(msg, relayCode);
-#ifndef OLED_DISABLE
-    oled.clear();
-    oled.println();
-    oled.print("          ");
-    oled.println(msg);
-#endif
-
-    if (sum == 2 * RFID_AMOUNT) {
-#ifndef OLED_DISABLE
-        oled.println("          Correct");
-#endif
-        STB::printWithHeader("!Correct", relayCode);
-        return true;
-    } else if (noZero) {
-#ifndef OLED_DISABLE
-        oled.println("          Wrong");
-#endif
-        STB::printWithHeader("!Wrong", relayCode);
-    }
-    return false;
-}
-
-
-#ifndef OLED_DISABLE
-void oledHomescreen() {
-    oled.clear();
-    oled.setFont(Adafruit5x7);
-    oled.print("\n\n\n");
-    oled.setFont(Verdana12_bold);
-    oled.println("  Type your code..");
-}
-#endif
-
-/**
- * Updates the LEDs with cards present
- *
- * @param void
- * @return void
- */
-void Update_LEDs() {
-    int sum = 0;
-    bool noZero = true;
-    //  Serial.println("UPDATE LEDS");
-    for (uint8_t i = 0; i < RFID_AMOUNT; i++) {
-        sum += cards_solution[i];
-        if (cards_solution[i] == 0) {
-            noZero = false;
-        }
-    }
-
-    if (sum == 2 * RFID_AMOUNT) {
-        for (size_t i = 0; i < RFID_AMOUNT; i++) {
-            STB_LED::setStripToClr(LED_Strips[i], clrGreen);
-        }
-    } else if (noZero) {
-        for (size_t i = 0; i < RFID_AMOUNT; i++) {
-            STB_LED::setStripToClr(LED_Strips[i], clrRed);
-        }
-    } else {
-        for (size_t i = 0; i < RFID_AMOUNT; i++) {
-            if (cards_solution[i] == 0) {
-                STB_LED::setStripToClr(LED_Strips[i], clrBlack);
-            } else {
-                STB_LED::setStripToClr(LED_Strips[i], clrYellow);
-            }
+        if (cards_solution[reader_nr] != cards_present[reader_nr]) {
+            STB::printWithHeader("Cards Changed", "SYS");
+            // do a print here
+            printStats = true;
+            memcpy(cards_solution, cards_present, RFID_AMOUNT);
         }
     }
 }
 
-/**
- * Reads all readers
- *
- * @param //TODO
- * @return true if success
- */
-bool read_PN532(int reader_nr, uint8_t* data, uint8_t* uid, uint8_t uidLength) {
-    bool success;
+/* 
+    RFID card printouts
+    "__" no card
+    "XX"
+    "Uk"
+    "CX"
+    STB::printWithHeader("!Correct", relayCode);
+    STB::printWithHeader("!Wrong", relayCode);
 
-    // authentication may be shifted to another function if we need to expand
-    success = RFID_READERS[reader_nr].mifareclassic_AuthenticateBlock(uid, uidLength, RFID_DATABLOCK, 0, keya);
-    //dbg_println("Trying to authenticate block 4 with default KEYA value");
-    delay(1);  //was 100!!
-    if (!success) {
-        //dbg_println("Authentication failed, card may already be authenticated");
-        return false;
-    }
+    STB_LED::setStripToClr(LED_Strips[i], clrYellow);
+    STB_LED::setStripToClr(LED_Strips[i], clrGreen);
+    STB_LED::setStripToClr(LED_Strips[i], clrRed);
+    STB_LED::setStripToClr(LED_Strips[i], clrBlack);
+*/
 
-    success = RFID_READERS[reader_nr].mifareclassic_ReadDataBlock(RFID_DATABLOCK, data);
-    if (!success) {
-        Serial.println("Reading failed, discarding card");
-    }
-    return success;
-}
 
 /**
  * prints refesh message to the serial after delay in UpdateSignalAfterDelay
@@ -372,96 +229,3 @@ void Update_serial() {
         printStats = true;
     }
 }
-
-/**
- * Checks if the solution is correct
- *
- * @param // TODO
- * @return // TODO
- */
-bool data_correct(int current_reader, uint8_t* data) {
-    uint8_t result = -1;
-
-    for (int reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
-        for (int i = 0; i < RFID_SOLUTION_SIZE - 1; i++) {
-            if (RFID_solutions[reader_nr][i] != data[i]) {
-                // TODO: Unneeded code, should be cleaned!
-                // We still check for the other solutions to show the color
-                // but we display it being the wrong solution of the riddle
-                if (reader_nr == current_reader) {
-                    //Serial.print("Wrong Card"); Serial.println(current_reader);
-                }
-                continue;
-            } else {
-                //Serial.print(data[i]);
-                if (i >= RFID_SOLUTION_SIZE - 2) {
-                    // its a valid card but not placed on the right socket
-                    //dbg_println("equal to result of reader");
-                    //dbg_println(str(i));
-                    result = reader_nr;
-                }
-            }
-        }
-        //Serial.println(" ");
-    }
-    if (result < 0) {
-        Serial.print((char*)data);
-        Serial.println(" = Undefined Card!!!");
-        return false;
-    }
-
-    return result == current_reader;
-}
-
-
-/**
- * Initialise RFID
- *
- * @param void
- * @return true on success
- * @note When stuck WTD cause arduino to restart
- */
-bool RFID_init() {
-    bool success;
-    for (int i = 0; i < RFID_AMOUNT; i++) {
-        uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};  // Buffer to store the returned UID
-        uint8_t uidLength;                      // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
-
-        wdt_reset();
-
-        Serial.print("initializing reader: ");
-        Serial.println(i);
-        RFID_READERS[i].begin();
-        RFID_READERS[i].setPassiveActivationRetries(5);
-
-        int retries = 0;
-        while (true) {
-            uint32_t versiondata = RFID_READERS[i].getFirmwareVersion();
-            if (!versiondata) {
-                Serial.println("Didn't find PN53x board");
-                if (retries > 5) {
-                    Serial.println("PN532 startup timed out, restarting");
-                    STB::softwareReset();
-                }
-            } else {
-                Serial.print("Found chip PN5");
-                Serial.println((versiondata >> 24) & 0xFF, HEX);
-                Serial.print("Firmware ver. ");
-                Serial.print((versiondata >> 16) & 0xFF, DEC);
-                Serial.print('.');
-                Serial.println((versiondata >> 8) & 0xFF, DEC);
-                break;
-            }
-            retries++;
-        }
-        // configure board to read RFID tags
-        RFID_READERS[i].SAMConfig();
-        delay(1);  //was 20!!!
-        success = RFID_READERS[i].readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-        //cards_solution[i]= int(success);
-    }
-
-    return success;
-}
-
-
