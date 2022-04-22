@@ -1,5 +1,3 @@
-#include "stb_namespace.h"
-
 String title = "Secret Door";
 String versionDate = "12.04.2021";
 String version = "version 1.0";
@@ -43,7 +41,7 @@ enum REL_INIT {
 
 // relay BASICS
 #define REL_AMOUNT 1
-const enum REL_PIN relayPinArray[] = {REL_DOOR_PIN};
-const enum REL_INIT relayInitArray[] = {REL_DOOR_INIT};
+int relayPinArray[] = {REL_DOOR_PIN};
+int relayInitArray[] = {REL_DOOR_INIT};
 
 // #define OLED_DISABLE 1

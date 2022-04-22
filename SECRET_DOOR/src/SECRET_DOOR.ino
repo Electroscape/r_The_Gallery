@@ -11,27 +11,24 @@
  */
 /*==========================================================================*/
 
-#include "header_s.h"
-using namespace stb_namespace;
+#include "header_st.h"
+#include <stb_common.h>
 
-//Watchdog timer
+// Watchdog
 #include <avr/wdt.h>
 // RFID
 
 // Keypad
 #include <Keypad.h> /* Standardbibliothek                                                 */
 #include <Keypad_I2C.h>
-#include <Password.h>
-#include <Wire.h> /* Standardbibliothek                                                 */
+#include <Password.h>                                             */
 
 // I2C Port Expander
 #include <PCF8574.h> /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
 
-/*==OLED============================================================*/
-#ifndef OLED_DISABLE
-#include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
-SSD1306AsciiWire oled;
-#endif
+#define OLED_DISABLE 1
+
+STB STB;
 
 /*==KEYPAD I2C============================================================*/
 const byte KEYPAD_ROWS = 4;  // Zeilen
@@ -51,45 +48,14 @@ byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};     // Spalten - Steuerleitungen (a
 static unsigned long update_timer = millis();
 const int keypad_reset_interval = 3000;
 
-Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_ADD, PCF8574);
+Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_ADD, PCF8574_MODE);
 
 // Passwort
 Password passKeypad = Password(secret_password);
 
 /*==PCF8574============================================================*/
-Expander_PCF8574 relay;
+PCF8574 relay;
 
-/*============================================================*/
-//===BASICS===================================================
-//============================================================*/
-
-void print_serial_header() {
-    printWithHeader("!header_begin", "SYS");
-    printWithHeader(title, "SYS");
-    printWithHeader(versionDate, "SYS");
-    printWithHeader(version, "SYS");
-}
-
-/*============================================================*/
-//===MOTHER===================================================
-//============================================================*/
-
-bool relay_init() {
-    Serial.println("initializing relay");
-    relay.begin(RELAY_I2C_ADD);
-
-    for (int i = 0; i < REL_AMOUNT; i++) {
-        relay.pinMode(relayPinArray[i], OUTPUT);
-        relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
-    }
-
-    Serial.print(F("\n successfully initialized relay\n"));
-    return true;
-}
-
-/*============================================================*/
-//===KEYPAD===================================================
-//============================================================*/
 
 void keypadEvent(KeypadEvent eKey) {
     KeyState state = IDLE;
@@ -118,7 +84,7 @@ void keypadEvent(KeypadEvent eKey) {
                     oled.print("         ");
                     oled.println(passKeypad.guess);
 #endif
-                    printWithHeader(passKeypad.guess, relayCode);
+                    // printWithHeader(passKeypad.guess, relayCode);
                     break;
             }
             break;
@@ -139,7 +105,7 @@ bool keypad_init() {
 void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
         passKeypad.reset();
-        printWithHeader("!Reset", relayCode);
+        // printWithHeader("!Reset", relayCode);
 // Homescreen
 #ifndef OLED_DISABLE
         oledHomescreen();
@@ -159,7 +125,7 @@ bool checkPassword() {
     if (strlen(passKeypad.guess) < 1) return false;
     bool result = passKeypad.evaluate();
     if (result) {
-        printWithHeader("!Correct", relayCode);
+        // printWithHeader("!Correct", relayCode);
 #ifndef OLED_DISABLE
         oled.clear();
         oled.setFont(Adafruit5x7);
@@ -178,7 +144,7 @@ bool checkPassword() {
             delay(10);
         }
     } else {
-        printWithHeader("!Wrong", relayCode);
+        // printWithHeader("!Wrong", relayCode);
 #ifndef OLED_DISABLE
         oled.println("    ACCESS DENIED!");
 #endif
@@ -233,25 +199,23 @@ void keypad_reset() {
 
         if (strlen(passKeypad.guess) > 0) {
             checkPassword();
-            printWithHeader("!Reset", relayCode);
+            // printWithHeader("!Reset", relayCode);
             Serial.println("!Timeout");
         } else {
             // Act as heartbeat pulse
-            printWithHeader("", relayCode);
+            // printWithHeader("", relayCode);
         }
         passwordReset();
     }
 }
 
 void setup() {
-    brainSerialInit();
-    Serial.println("WDT endabled");
+
+    STB.begin();
+    STB.dbgln("WDT endabled");
     wdt_enable(WDTO_8S);
-    wdt_reset();
 
-    Serial.println("!setup_begin");
-
-    i2cScanner();
+    STB.i2cScanner();
 
 #ifndef OLED_DISABLE
     Serial.print(F("Oleds: ..."));
@@ -260,10 +224,7 @@ void setup() {
     }
 #endif
 
-    Serial.print(F("Relay: ..."));
-    if (relay_init()) {
-        Serial.println(" ok");
-    }
+     STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
     wdt_reset();
 
     delay(50);
@@ -275,12 +236,7 @@ void setup() {
     wdt_reset();
     delay(5);
 
-    Serial.println();
-    Serial.println("===================START=====================");
-    Serial.println();
-
-    Serial.print(F("!setup_end\n\n"));
-    delay(2000);
+    STB.printSetupEnd();
 }
 
 /*============================================================*/
