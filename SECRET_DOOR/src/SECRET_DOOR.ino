@@ -21,7 +21,7 @@
 // Keypad
 #include <Keypad.h> /* Standardbibliothek                                                 */
 #include <Keypad_I2C.h>
-#include <Password.h>                                             */
+#include <Password.h>                                             
 
 // I2C Port Expander
 #include <PCF8574.h> /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
@@ -45,8 +45,8 @@ char KeypadKeys[KEYPAD_ROWS][KEYPAD_COLS] = {
 byte KeypadRowPins[KEYPAD_ROWS] = {1, 6, 5, 3};  // Zeilen  - Messleitungen
 byte KeypadColPins[KEYPAD_COLS] = {2, 0, 4};     // Spalten - Steuerleitungen (abwechselnd HIGH)
 
-static unsigned long update_timer = millis();
-const int keypad_reset_interval = 3000;
+unsigned long updateTimer = millis();
+const int keypadResetInterval = 3000;
 
 Keypad_I2C Keypad(makeKeymap(KeypadKeys), KeypadRowPins, KeypadColPins, KEYPAD_ROWS, KEYPAD_COLS, KEYPAD_ADD, PCF8574_MODE);
 
@@ -64,7 +64,7 @@ void keypadEvent(KeypadEvent eKey) {
 
     switch (state) {
         case PRESSED:
-            update_timer = millis();
+            updateTimer = millis();
             switch (eKey) {
                 case '#':
                     checkPassword();
@@ -94,7 +94,7 @@ void keypadEvent(KeypadEvent eKey) {
     }
 }
 
-bool keypad_init() {
+bool keypadInit() {
     Keypad.addEventListener(keypadEvent);  // Event Listener erstellen
     Keypad.begin(makeKeymap(KeypadKeys));
     Keypad.setHoldTime(5000);
@@ -193,9 +193,9 @@ void oledHomescreen() {
  * @return void
  * @note Sends No Input heartbeat-like message
  */
-void keypad_reset() {
-    if (millis() - update_timer >= keypad_reset_interval) {
-        update_timer = millis();
+void keypadReset() {
+    if (millis() - updateTimer >= keypadResetInterval) {
+        updateTimer = millis();
 
         if (strlen(passKeypad.guess) > 0) {
             checkPassword();
@@ -230,7 +230,7 @@ void setup() {
     delay(50);
 
     Serial.print(F("Keypad: ..."));
-    if (keypad_init()) {
+    if (keypadInit()) {
         Serial.print(F(" ok\n"));
     }
     wdt_reset();
@@ -239,12 +239,9 @@ void setup() {
     STB.printSetupEnd();
 }
 
-/*============================================================*/
-//===LOOP=====================================================
-//============================================================*/
 void loop() {
     wdt_reset();
 
     Keypad.getKey();
-    keypad_reset();
+    keypadReset();
 }
