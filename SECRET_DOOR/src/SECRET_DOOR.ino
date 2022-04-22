@@ -76,14 +76,12 @@ void keypadEvent(KeypadEvent eKey) {
 
                 default:
                     passKeypad.append(eKey);
-#ifndef OLED_DISABLE
-                    oled.clear();
-                    oled.setFont(Adafruit5x7);
-                    oled.print("\n\n\n");
-                    oled.setFont(Verdana12_bold);
-                    oled.print("         ");
-                    oled.println(passKeypad.guess);
-#endif
+                    STB.defaultOled.clear();
+                    STB.defaultOled.setFont(Adafruit5x7);
+                    STB.defaultOled.print("\n\n\n");
+                    STB.defaultOled.setFont(Verdana12_bold);
+                    STB.defaultOled.print("         ");
+                    STB.defaultOled.println(passKeypad.guess);
                     // printWithHeader(passKeypad.guess, relayCode);
                     break;
             }
@@ -106,10 +104,7 @@ void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
         passKeypad.reset();
         // printWithHeader("!Reset", relayCode);
-// Homescreen
-#ifndef OLED_DISABLE
         oledHomescreen();
-#endif
     }
 }
 
@@ -126,13 +121,7 @@ bool checkPassword() {
     bool result = passKeypad.evaluate();
     if (result) {
         // printWithHeader("!Correct", relayCode);
-#ifndef OLED_DISABLE
-        oled.clear();
-        oled.setFont(Adafruit5x7);
-        oled.print("\n\n\n");
-        oled.setFont(Verdana12_bold);
-        oled.println("   ACCESS GRANTED!");
-#endif
+        oledHomescreen();
         //0.1 sec delay between correct msg and relay switch
         delay(100);
         relay.digitalWrite(REL_DOOR_PIN, !REL_DOOR_INIT);
@@ -145,9 +134,7 @@ bool checkPassword() {
         }
     } else {
         // printWithHeader("!Wrong", relayCode);
-#ifndef OLED_DISABLE
-        oled.println("    ACCESS DENIED!");
-#endif
+        STB.defaultOled.println("    ACCESS DENIED!");
         // Wait to show wrong for a second
         delay(1000);
         passwordReset();
@@ -159,32 +146,13 @@ bool checkPassword() {
 //===OLED=====================================================
 //============================================================*/
 
-#ifndef OLED_DISABLE
-/**
- * Initialize Oled
- *
- * @param void
- * @return true (bool) on success
- */
-bool oled_init() {
-    // &SH1106_128x64 &Adafruit128x64
-    Serial.print(F("Oled init\n"));
-    oled.begin(&SH1106_128x64, OLED_ADD);
-    oled.set400kHz();
-    oled.setScroll(true);
-    oledHomescreen();
-    delay(1000);
-    return true;
-}
-
 void oledHomescreen() {
-    oled.clear();
-    oled.setFont(Adafruit5x7);
-    oled.print("\n\n\n");
-    oled.setFont(Verdana12_bold);
-    oled.println("  Type your code..");
+    STB.defaultOled.clear();
+    STB.defaultOled.setFont(Adafruit5x7);
+    STB.defaultOled.print("\n\n\n");
+    STB.defaultOled.setFont(Verdana12_bold);
+    STB.defaultOled.println("  Type your code..");
 }
-#endif
 
 /**
  * Resets the password after timeout
@@ -224,7 +192,7 @@ void setup() {
     }
 #endif
 
-     STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
+    STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
     wdt_reset();
 
     delay(50);
@@ -235,6 +203,8 @@ void setup() {
     }
     wdt_reset();
     delay(5);
+
+    STB.defaultOled.setFont(Verdana12_bold);
 
     STB.printSetupEnd();
 }
