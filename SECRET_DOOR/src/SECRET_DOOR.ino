@@ -13,6 +13,7 @@
 
 #include "header_st.h"
 #include <stb_common.h>
+#include <stb_keypad.h>
 
 // Watchdog
 #include <avr/wdt.h>
@@ -29,6 +30,7 @@
 #define OLED_DISABLE 1
 
 STB STB;
+STB_KEYPAD STB_KEYPAD;
 
 /*==KEYPAD I2C============================================================*/
 const byte KEYPAD_ROWS = 4;  // Zeilen
@@ -92,13 +94,7 @@ void keypadEvent(KeypadEvent eKey) {
     }
 }
 
-bool keypadInit() {
-    Keypad.addEventListener(keypadEvent);  // Event Listener erstellen
-    Keypad.begin(makeKeymap(KeypadKeys));
-    Keypad.setHoldTime(5000);
-    Keypad.setDebounceTime(20);
-    return true;
-}
+
 
 void passwordReset() {
     if (strlen(passKeypad.guess) > 0) {
@@ -197,10 +193,6 @@ void setup() {
 
     delay(50);
 
-    Serial.print(F("Keypad: ..."));
-    if (keypadInit()) {
-        Serial.print(F(" ok\n"));
-    }
     wdt_reset();
     delay(5);
 
