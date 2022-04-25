@@ -20,6 +20,8 @@
 #include <stb_led.h>
 #include <stb_oled.h>
 
+STB STB;
+
 // defining necessary neopixel objects and variables
 Adafruit_NeoPixel LED_Strips[STRIPE_CNT];
 
@@ -77,35 +79,30 @@ PCF8574 relay;
 //===SETUP==============================
 //====================================*/
 void setup() {
-    STB::begin();
+    STB.begin();
     Serial.println("WDT endabled");
     wdt_enable(WDTO_8S);
 
-    STB::i2cScanner();
+    STB.i2cScanner();
 
-    STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG);
-    wdt_reset();
-
-#ifndef OLED_DISABLE
-    STB_OLED::oledInit(oled, SH1106_128x64);
-    oledHomescreen();
-#endif
+    STB.dbg("Led init ...");
+    if (STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG)) {STB.dbgln(" successful!");};
 
     wdt_reset();
 
     for (int i = 0; i < RFID_AMOUNT; i++) {
-        Serial.print("\n\ninitializing reader: "); Serial.println(i);
-        STB_RFID::RFIDInit(RFID_READERS[i]);
+        STB.dbg("RFID-Reader init: "); STB.dbgln(String(i));
+        if (STB_RFID::RFIDInit(RFID_READERS[i])) {STB.dbgln("success!");};
         wdt_reset();
     }
 
     wdt_reset();
 
-    STB::relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
+    STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
 
     wdt_reset();
     delayStart = millis();  // start delay
-    STB::printSetupEnd();
+    STB.printSetupEnd();
 }
 
 /*======================================
