@@ -1,16 +1,13 @@
-/*=======================================================*/
-/**		2CP - TeamEscape - Engineering
- *		by Abdullah Saei & Martin Pek
- *
- *		v2.0 beta
- *      - Accept passwords longer than length
- *      - Logic separation OLED and keypad
- *		- Use OLED SH1106
- *      - Remove deprecations
- *      - Block after correct solution
- *
+/**
+ * @file COLOR_CODE.ino
+ * @author Martin Pek (martin.pek@web.de)
+ * @brief 
+ * @version 0.1
+ * @date 2022-04-26
+ * 
+ * @copyright Copyright (c) 2022
+ * 
  */
-/*=======================================================*/
 
 #include <stb_common.h>
 #include "header_st.h"
@@ -77,7 +74,6 @@ void loop() {
     // Heartbeat message
     if (millis() - lastHeartbeat >= heartbeatFrequency) {
         lastHeartbeat = millis();
-        // STB.dbgln(passLight.guess);
         // printWithHeader(passLight.guess, relayCode);
     }
 
