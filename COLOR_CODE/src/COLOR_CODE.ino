@@ -14,7 +14,7 @@
 
 /*==INCLUDE==============================================*/
 
-
+#include <avr/wdt.h>
 // Keypad
 #include <Keypad.h>
 #include <Keypad_I2C.h>
@@ -52,20 +52,28 @@ unsigned long lastHeartbeat = millis();
 
 
 void setup() {
+
     STB.begin();
 
+    STB.dbgln("WDT endabled");
+    wdt_enable(WDTO_8S);
+    wdt_reset();
+    
     STB.i2cScanner();
 
     STB.dbg("Keypad init...");
     if (KeypadInit()) {STB.dbgln("success");}
+
     
     STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
 
+    wdt_reset();
     delay(2000);
     STB.printSetupEnd();
 }
 
 void loop() {
+    wdt_reset();
     // Heartbeat message
     if (millis() - lastHeartbeat >= heartbeatFrequency) {
         lastHeartbeat = millis();
@@ -81,7 +89,9 @@ void loop() {
     if (endGame) {
         // printWithHeader("Game Complete", "SYS");
         STB.dbgln("Game Complete\nWaiting for restart");
+        STB.dbgln("WDT disabled");
         Serial.println("End Game, Please restart the arduino!");
+        wdt_disable();
         while (true) {
             delay(500);
         }
@@ -101,10 +111,8 @@ void OLEDUpdate() {
 
 void OLEDIdlescreen() {
     STB.defaultOled.clear();
-    STB.defaultOled.setFont(Adafruit5x7);
-    STB.defaultOled.print("\n\n\n");
     STB.defaultOled.setFont(Arial_bold_14);
-    STB.defaultOled.println("  Enter Code..");
+    STB.defaultOled.println("\n  Enter Code..");
     oledLastUpdate = millis();
 }
 
