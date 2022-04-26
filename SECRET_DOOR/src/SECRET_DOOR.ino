@@ -83,6 +83,9 @@ void setup() {
     STB.defaultOled.setFont(Verdana12_bold);
 
     STB.printSetupEnd();
+    wdt_reset();
+    delay(3000);
+    oledHomescreen();
 }
 
 void loop() {
@@ -116,7 +119,7 @@ void keypadEvent(KeypadEvent eKey) {
                     STB.defaultOled.print("\n\n\n");
                     STB.defaultOled.setFont(Verdana12_bold);
                     STB.defaultOled.print("         ");
-                    STB.defaultOled.println(passKeypad.guess);
+                    STB.dbgln(passKeypad.guess);
                     // printWithHeader(passKeypad.guess, relayCode);
                     break;
             }
@@ -155,8 +158,14 @@ bool checkPassword() {
     if (strlen(passKeypad.guess) < 1) return false;
     bool result = passKeypad.evaluate();
     if (result) {
-        // printWithHeader("!Correct", relayCode);
-        oledHomescreen();
+        STB.printWithHeader("!Correct", relayCode);
+
+        STB.defaultOled.clear();
+        STB.defaultOled.setFont(Adafruit5x7);
+        STB.defaultOled.print("\n\n\n");
+        STB.defaultOled.setFont(Verdana12_bold);
+        STB.dbgln("   ACCESS GRANTED!");
+
         //0.1 sec delay between correct msg and relay switch
         delay(100);
         relay.digitalWrite(REL_DOOR_PIN, !REL_DOOR_INIT);
@@ -165,11 +174,11 @@ bool checkPassword() {
         // Block code
         while (true) {
             wdt_reset();
-            delay(10);
+            delay(500);
         }
     } else {
         // printWithHeader("!Wrong", relayCode);
-        STB.defaultOled.println("    ACCESS DENIED!");
+        STB.dbgln("    ACCESS DENIED!");
         // Wait to show wrong for a second
         delay(1000);
         passwordReset();
@@ -182,6 +191,7 @@ bool checkPassword() {
 //============================================================*/
 
 void oledHomescreen() {
+    Serial.println("Homescreen");
     STB.defaultOled.clear();
     STB.defaultOled.setFont(Adafruit5x7);
     STB.defaultOled.print("\n\n\n");
