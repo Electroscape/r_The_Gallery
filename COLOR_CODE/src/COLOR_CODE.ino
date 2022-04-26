@@ -13,8 +13,6 @@
 #include "header_st.h"
 
 /*==INCLUDE==============================================*/
-// I2C Port Expander
-#include <PCF8574.h>
 
 // OLED
 #include <SSD1306Ascii.h>
