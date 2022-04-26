@@ -1,15 +1,14 @@
-/*=========================================================================*/
-/**		2CP - TeamEscape - Engineering
- *		by Martin Pek & Abdullah Saei
- *
- *		based on HH  keypad-light-exit v 1.5
- *		- Reset only on timeout
- *		- Block brain after correct solution
- *		- add heartbeat pulse if no input
- *		- enable WDT
- *		- add oled homescreen
+/**
+ * @file SECRET_DOOR.ino
+ * @author Martin Pek (martin.pek@web.de)
+ * @brief 
+ * @version 0.1
+ * @date 2022-04-26
+ * 
+ * @copyright Copyright (c) 2022
+ * 
  */
-/*==========================================================================*/
+
 
 #include "header_st.h"
 #include <stb_common.h>
@@ -22,9 +21,6 @@
 #include <Keypad.h> /* Standardbibliothek                                                 */
 #include <Keypad_I2C.h>
 #include <Password.h>                                             
-
-// I2C Port Expander
-#include <PCF8574.h> /* https://github.com/skywodd/pcf8574_arduino_library - modifiziert!  */
 
 #define OLED_DISABLE 1
 
@@ -56,6 +52,45 @@ Password passKeypad = Password(secret_password);
 /*==PCF8574============================================================*/
 PCF8574 relay;
 
+
+void setup() {
+
+    STB.begin();
+    STB.dbgln("WDT endabled");
+    wdt_enable(WDTO_8S);
+
+    STB.i2cScanner();
+
+#ifndef OLED_DISABLE
+    Serial.print(F("Oleds: ..."));
+    if (oled_init()) {
+        Serial.println(" light OLED ok...");
+    }
+#endif
+
+    STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
+    wdt_reset();
+
+    delay(50);
+
+    Serial.print(F("Keypad: ..."));
+    if (keypadInit()) {
+        Serial.print(F(" ok\n"));
+    }
+    wdt_reset();
+    delay(5);
+
+    STB.defaultOled.setFont(Verdana12_bold);
+
+    STB.printSetupEnd();
+}
+
+void loop() {
+    wdt_reset();
+
+    Keypad.getKey();
+    keypadReset();
+}
 
 void keypadEvent(KeypadEvent eKey) {
     KeyState state = IDLE;
@@ -177,41 +212,3 @@ void keypadReset() {
     }
 }
 
-void setup() {
-
-    STB.begin();
-    STB.dbgln("WDT endabled");
-    wdt_enable(WDTO_8S);
-
-    STB.i2cScanner();
-
-#ifndef OLED_DISABLE
-    Serial.print(F("Oleds: ..."));
-    if (oled_init()) {
-        Serial.println(" light OLED ok...");
-    }
-#endif
-
-    STB.relayInit(relay, relayPinArray, relayInitArray, REL_AMOUNT);
-    wdt_reset();
-
-    delay(50);
-
-    Serial.print(F("Keypad: ..."));
-    if (keypadInit()) {
-        Serial.print(F(" ok\n"));
-    }
-    wdt_reset();
-    delay(5);
-
-    STB.defaultOled.setFont(Verdana12_bold);
-
-    STB.printSetupEnd();
-}
-
-void loop() {
-    wdt_reset();
-
-    Keypad.getKey();
-    keypadReset();
-}
