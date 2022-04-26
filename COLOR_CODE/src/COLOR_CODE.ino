@@ -14,9 +14,6 @@
 
 /*==INCLUDE==============================================*/
 
-// OLED
-#include <SSD1306Ascii.h>
-#include <SSD1306AsciiWire.h>
 
 // Keypad
 #include <Keypad.h>
