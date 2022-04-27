@@ -162,17 +162,19 @@ void solveGame() {
 void readRFIDs() {
     uint8_t data[16];
     String msg = "";
+    bool cardsChanged = false;
 
     for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
 
         if (STB_RFID::cardRead(RFID_READERS[reader_nr], data, 1)) {
             cards_present[reader_nr]++;
 
-            // evaluate which card is read 
+            // evaluate if the cards data matches a reader
             for (uint8_t solution_nr = 0; solution_nr < RFID_AMOUNT; solution_nr++) {
-                if (strcmp(RFID_solutions[reader_nr], (char *) data)) {
+                if (strcmp(RFID_solutions[solution_nr], (char *) data)) {
                     msg += "C";
                     msg.concat(solution_nr + 1);
+                    // check if the card is on the correct reader
                     if (solution_nr == reader_nr) {
                         cards_present[reader_nr]++;
                     } 
@@ -187,13 +189,21 @@ void readRFIDs() {
 
         msg += " ";
 
+        // decide if updates to outputs is needed, by checking if a card got placed or removed
         if (cards_solution[reader_nr] != cards_present[reader_nr]) {
-            STB::printWithHeader("Cards Changed", "SYS");
-            STB.dbgln(msg);
-            // do a print here
+            cardsChanged = true;
             printStats = true;
-            memcpy(cards_solution, cards_present, RFID_AMOUNT);
+            memcpy(cards_solution, cards_present, RFID_SOLUTION_SIZE);
         }
+        
+    }
+
+    // to terminate the string
+    msg += "\0";
+
+    if (cardsChanged) { 
+        STB.dbgln(msg); 
+        STB::printWithHeader("Cards Changed", "SYS");
     }
 }
 
