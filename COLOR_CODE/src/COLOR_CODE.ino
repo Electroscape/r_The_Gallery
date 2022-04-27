@@ -195,30 +195,6 @@ void keypadEvent(KeypadEvent eKey) {
     }
 }
 
-/**
- * Initialise 8 Relays on I2C PCF
- *
- * @param void
- * @return true when done
- */
-bool relay_init() {
-    Serial.println("initializing relay");
-    relay.begin(RELAY_I2C_ADD);
-
-    // init all 8,, they are physically disconnected anyways
-    for (int i = 0; i < REL_AMOUNT; i++) {
-        relay.pinMode(relayPinArray[i], OUTPUT);
-        relay.digitalWrite(relayPinArray[i], relayInitArray[i]);
-        Serial.print("     ");
-        Serial.print("Relay [");
-        Serial.print(relayPinArray[i]);
-        Serial.print("] set to ");
-        Serial.println(relayInitArray[i]);
-    }
-    Serial.println();
-    Serial.println("successfully initialized relay");
-    return true;
-}
 
 /**
  * Evaluates guessed password
