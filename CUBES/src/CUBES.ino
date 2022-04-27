@@ -56,16 +56,11 @@ char RFID_reads[4][RFID_SOLUTION_SIZE] = {
 #define RFID_DATABLOCK 1
 uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-/*==OLED============================================================*/
-#ifndef OLED_DISABLE
-#include "SSD1306AsciiWire.h" /* https://github.com/greiman/SSD1306Ascii                            */
-SSD1306AsciiWire oled;
-#endif
 
 //==Variables==============================/
 int cards_solution[RFID_AMOUNT] = {0};  //0 no card, 1 there is card, 2 correct card
-bool runOnce = false;
-bool EndBlock = false;
+int cards_present[RFID_AMOUNT] = {0};
+bool gameLive = true;
 bool printStats = true;
 
 //=====Timer=============================/
@@ -81,6 +76,9 @@ PCF8574 relay;
 void setup() {
     STB.begin();
     Serial.println("WDT endabled");
+    Serial.println("MY NEW VERSION");
+    Serial.println("MY NEW VERSION");
+    Serial.println("MY NEW VERSION");
     wdt_enable(WDTO_8S);
 
     STB.i2cScanner();
@@ -111,43 +109,46 @@ void setup() {
 void loop() {
     //send refresh signal every interval of time
     Update_serial();
-
-    if (!EndBlock) {
-        wdt_reset();
+    if (gameLive) {
         readRFIDs();
-        
-        wdt_reset();
-
-        //Game Solved
-        if (true && !runOnce) {
-            Serial.println("GATE OPEN");
-           
-            //0.1 sec delay between correct msg and relay switch
-            delay(100);
-            relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
-            relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
-            delay(5000);
-            wdt_reset();
-
-            // Sometimes green LEDs miss the command then, instead of waiting
-            // 3 secs to be updated, update every 1 sec.
-            wdt_reset();
-            delay(3000);
-            relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
-            runOnce = true;
-            wdt_reset();
-
-            //Block the game
-            Serial.println("Waiting for new Game!");
-            EndBlock = true;
-            Serial.println("Restart in required!");
-            wdt_disable();
-            STB::printWithHeader("Game Complete", "SYS");
+        updateLeds();
+        if (isGameSolved()) {
+            solveGame();
         }
-    } else {
-        // Update_LEDs();
-        delay(500);
     }
+    wdt_reset();
+    delay(150);
+}
+
+bool isGameSolved() {
+    for (int i = 0; i<RFID_AMOUNT; i++) {
+        if (cards_solution[i] == 0) { return false;}
+    }
+    return true;
+}
+
+void updateLeds() {
+
+}
+
+void solveGame() {
+    delay(100);
+    relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
+    relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
+    delay(5000);
+    wdt_reset();
+
+    // Sometimes green LEDs miss the command then, instead of waiting
+    // 3 secs to be updated, update every 1 sec.
+    wdt_reset();
+    delay(3000);
+    relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
+
+    //Block the game
+    STB.dbgln("Waiting for new Game!");
+    STB.dbgln("Restart in required!");
+    wdt_disable();
+    STB::printWithHeader("Game Complete", "SYS");
 }
 
 
@@ -160,7 +161,6 @@ void loop() {
  */
 void readRFIDs() {
     uint8_t data[16];
-    int cards_present[RFID_AMOUNT] = {0};
     String msg = "";
 
     for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
@@ -189,6 +189,7 @@ void readRFIDs() {
 
         if (cards_solution[reader_nr] != cards_present[reader_nr]) {
             STB::printWithHeader("Cards Changed", "SYS");
+            STB.dbgln(msg);
             // do a print here
             printStats = true;
             memcpy(cards_solution, cards_present, RFID_AMOUNT);
