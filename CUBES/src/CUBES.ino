@@ -61,6 +61,7 @@ uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 int cards_present[RFID_AMOUNT] = {0};   // 0 no card, 1 there is card, 2 correct card
 int cards_previous[RFID_AMOUNT] = {0};  // result from the previous loop to detect changes
 String msg = "";
+bool cardsUpdated = true;
 
 bool gameLive = true;
 bool printStats = true;
@@ -109,9 +110,13 @@ void loop() {
         if (!isGameSolved()) {
             if (allCardsPlaced()) {
                 STB_LED::setAllStripsToClr(LED_Strips, clrRed);
+            } else if (cardsUpdated) {
+                updateLeds();
             }
         }
     }
+
+    cardsUpdated = false;
     wdt_reset();
     delay(150);
 }
@@ -133,6 +138,11 @@ bool isGameSolved() {
     return true;
 }
 
+
+/**
+ * @brief this only updates individual strips setting all red and green is handled by other fncs
+ * 
+ */
 void updateLeds() {
     for (int i = 0; i<RFID_AMOUNT; i++) {
         if (cards_present[i] > 0 ) {
@@ -215,22 +225,13 @@ void readRFIDs() {
         STB.dbgln(msg); 
         STB::printWithHeader("Cards Changed", "SYS");
         memcpy(cards_previous, cards_present, RFID_AMOUNT);
+        cardsUpdated = true;
     }
 }
 
 /* 
-    RFID card printouts
-    "__" no card
-    "XX"
-    "Uk"
-    "CX"
     STB::printWithHeader("!Correct", relayCode);
     STB::printWithHeader("!Wrong", relayCode);
-
-    STB_LED::setStripToClr(LED_Strips[i], clrYellow);
-    STB_LED::setStripToClr(LED_Strips[i], clrGreen);
-    STB_LED::setStripToClr(LED_Strips[i], clrRed);
-    STB_LED::setStripToClr(LED_Strips[i], clrBlack);
 */
 
 
