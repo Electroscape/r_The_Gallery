@@ -58,8 +58,10 @@ uint8_t keya[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 
 //==Variables==============================/
-int cards_solution[RFID_AMOUNT] = {0};  //0 no card, 1 there is card, 2 correct card
-int cards_present[RFID_AMOUNT] = {0};
+int cards_present[RFID_AMOUNT] = {0};   // 0 no card, 1 there is card, 2 correct card
+int cards_previous[RFID_AMOUNT] = {0};  // result from the previous loop to detect changes
+String msg = "";
+
 bool gameLive = true;
 bool printStats = true;
 
@@ -67,24 +69,20 @@ bool printStats = true;
 unsigned long delayStart = 0;  // the time the delay started
 bool delayRunning = false;     // true if still waiting for delay to finish
 
-//==PCF8574==============================/
 PCF8574 relay;
 
-/*======================================
-//===SETUP==============================
-//====================================*/
+
 void setup() {
     STB.begin();
     Serial.println("WDT endabled");
-    Serial.println("MY NEW VERSION");
-    Serial.println("MY NEW VERSION");
-    Serial.println("MY NEW VERSION");
     wdt_enable(WDTO_8S);
 
     STB.i2cScanner();
 
     STB.dbg("Led init ...");
     if (STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG)) {STB.dbgln(" successful!");};
+    STB_LED::setAllStripsToClr(LED_Strips, clrGreen);
+    delay(2000);
 
     wdt_reset();
 
@@ -108,30 +106,53 @@ void setup() {
 //====================================*/
 void loop() {
     //send refresh signal every interval of time
-    Update_serial();
+    // Update_serial();
     if (gameLive) {
         readRFIDs();
-        updateLeds();
-        if (isGameSolved()) {
-            solveGame();
+        if (!isGameSolved()) {
+            if (allCardsPlaced()) {
+                STB_LED::setAllStripsToClr(LED_Strips, clrRed);
+            }
         }
     }
     wdt_reset();
     delay(150);
 }
 
-bool isGameSolved() {
+bool allCardsPlaced() {
     for (int i = 0; i<RFID_AMOUNT; i++) {
-        if (cards_solution[i] == 0) { return false;}
+        if (cards_present[i] == 0 ) {
+            return false;
+        }
     }
     return true;
 }
 
-void updateLeds() {
-
+bool isGameSolved() {
+    for (int i = 0; i<RFID_AMOUNT; i++) {
+        if (cards_present[i] < 2) { return false;}
+    }
+    solveGame();
+    return true;
 }
 
+void updateLeds() {
+    for (int i = 0; i<RFID_AMOUNT; i++) {
+        if (cards_present[i] > 0 ) {
+            STB_LED::setStripToClr(LED_Strips[i], clrYellow);
+        } else {
+            STB_LED::setStripToClr(LED_Strips[i], clrBlack);
+        }
+    }
+}
+
+/**
+ * @brief 
+ * 
+ */
 void solveGame() {
+    wdt_reset();
+    STB_LED::setAllStripsToClr(LED_Strips, clrGreen);
     delay(100);
     relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_OFF);
     relay.digitalWrite(REL_SCHW_LI_PIN, LIGHT_ON);
@@ -140,70 +161,63 @@ void solveGame() {
 
     // Sometimes green LEDs miss the command then, instead of waiting
     // 3 secs to be updated, update every 1 sec.
-    wdt_reset();
+
     delay(3000);
     relay.digitalWrite(REL_ROOM_LI_PIN, LIGHT_ON);
+    wdt_reset();
 
     //Block the game
     STB.dbgln("Waiting for new Game!");
     STB.dbgln("Restart in required!");
     wdt_disable();
     STB::printWithHeader("Game Complete", "SYS");
+    gameLive = false;
 }
 
 
-// RFID functions
 /**
- * RFID framework read, check and update
- *
- * @param void
- * @return void
+ * @brief 
+ * checks which readers got cards present/correct and updates the globabl status var cards_present for further evaluation
  */
 void readRFIDs() {
+    memset(cards_present, 0, RFID_AMOUNT); // reset cards_present otherwise we constantly increment and the previous memcmp fails
     uint8_t data[16];
-    String msg = "";
-    bool cardsChanged = false;
+    msg = "";
 
-    for (uint8_t reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
+    for (int reader_nr = 0; reader_nr < RFID_AMOUNT; reader_nr++) {
 
         if (STB_RFID::cardRead(RFID_READERS[reader_nr], data, 1)) {
             cards_present[reader_nr]++;
 
             // evaluate if the cards data matches a reader
-            for (uint8_t solution_nr = 0; solution_nr < RFID_AMOUNT; solution_nr++) {
-                if (strcmp(RFID_solutions[solution_nr], (char *) data)) {
+            for (int solution_nr = 0; solution_nr < RFID_AMOUNT; solution_nr++) {
+                String dataStr = (char*)data;
+                if (strncmp(RFID_solutions[solution_nr], (char *) data, 2) == 0) {
                     msg += "C";
-                    msg.concat(solution_nr + 1);
-                    // check if the card is on the correct reader
+                    msg.concat(String(solution_nr + 1));
                     if (solution_nr == reader_nr) {
                         cards_present[reader_nr]++;
+                        break;
                     } 
-                } else if (reader_nr + 1 == RFID_AMOUNT) {
+                    break;
+                } else if (solution_nr + 1 == RFID_AMOUNT) {
                     msg += "UK";
                 }
             }
-        // no card present
+        // read failed, no card or card with different encryption present
         } else {
             msg += "__";
         }
 
         msg += " ";
-
-        // decide if updates to outputs is needed, by checking if a card got placed or removed
-        if (cards_solution[reader_nr] != cards_present[reader_nr]) {
-            cardsChanged = true;
-            printStats = true;
-            memcpy(cards_solution, cards_present, RFID_SOLUTION_SIZE);
-        }
-        
     }
 
-    // to terminate the string
-    msg += "\0";
-
-    if (cardsChanged) { 
+    // Todo: add periodic refresh
+    // decide if updates to outputs is needed, by checking if a card got placed or removed
+    if ( memcmp(cards_present, cards_previous, RFID_AMOUNT) != 0 ) { 
         STB.dbgln(msg); 
         STB::printWithHeader("Cards Changed", "SYS");
+        memcpy(cards_previous, cards_present, RFID_AMOUNT);
     }
 }
 

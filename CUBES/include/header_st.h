@@ -28,15 +28,15 @@ String relayCode = String("UVL");
 #define RFID_3_LED_PIN          5     /* Per Konvention ist dies RFID-Port 3                                */
 #define RFID_4_LED_PIN          3     /* Per Konvention ist dies RFID-Port 4   */
 
-int ledCnts[STRIPE_CNT] = {31};
-int ledPins[STRIPE_CNT] = {RFID_1_LED_PIN};
+int ledCnts[STRIPE_CNT] = {9};
+int ledPins[STRIPE_CNT] = {RFID_1_LED_PIN, RFID_2_LED_PIN, RFID_3_LED_PIN};
 
 // RFIDs
 #define RFID_AMOUNT 3
 
 //Cards Data
 #define RFID_SOLUTION_SIZE 3  // Length of Char data on NFC tag + char '\n' at the end
-const char RFID_solutions[4][RFID_SOLUTION_SIZE] = {"AH", "SD", "GF"};
+char RFID_solutions[RFID_AMOUNT][4] = {"AH\0", "SD\0", "GF\0"};
 
 const uint16_t UpdateSignalAfterDelay = 5000; /* Zeit, bis Serial print als Online Signal			*/
 
