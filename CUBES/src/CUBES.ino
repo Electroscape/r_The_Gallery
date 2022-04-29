@@ -80,10 +80,7 @@ void setup() {
     STB.i2cScanner();
 
     STB.dbg("Led init ...");
-    if (STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_BRG)) {STB.dbgln(" successful!");};
-    STB_LED::setAllStripsToClr(LED_Strips, clrGreen);
-    delay(2000);
-
+    if (STB_LED::ledInit(LED_Strips, ledCnts, ledPins, NEO_RGB)) {STB.dbgln(" successful!");};
     wdt_reset();
 
     for (int i = 0; i < RFID_AMOUNT; i++) {
