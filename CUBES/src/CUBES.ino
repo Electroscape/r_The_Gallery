@@ -177,7 +177,7 @@ void solveGame() {
  * checks which readers got cards present/correct and updates the globabl status var cards_present for further evaluation
  */
 void readRFIDs() {
-    memset(cards_present, 0, RFID_AMOUNT); // reset cards_present otherwise we constantly increment and the previous memcmp fails
+    memset(cards_present, 0, sizeof(cards_present)); // reset cards_present otherwise we constantly increment and the previous memcmp fails
     uint8_t data[16];
     msg = "";
 
@@ -211,7 +211,7 @@ void readRFIDs() {
 
     // Todo: add periodic refresh
     // decide if updates to outputs is needed, by checking if a card got placed or removed
-    if ( memcmp(cards_present, cards_previous, RFID_AMOUNT) != 0 ) { 
+    if ( memcmp(cards_present, cards_previous, sizeof(cards_present)) != 0 ) { 
         STB.dbgln(msg); 
         STB::printWithHeader("Cards Changed", "SYS");
         memcpy(cards_previous, cards_present, RFID_AMOUNT);
