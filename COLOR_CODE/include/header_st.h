@@ -69,7 +69,7 @@ enum REL_INIT {
 
 // == constants
 #define REL_AMOUNT 1
-const enum REL_PIN relayPinArray[] = {
+int relayPinArray[REL_AMOUNT] = {
     REL_SAFE_PIC_PIN};
-const byte relayInitArray[] = {
+int relayInitArray[REL_AMOUNT] = {
     REL_SAFE_PIC_INIT};

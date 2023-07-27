@@ -1,6 +1,4 @@
 #pragma once
-#include "stb_namespace.h"
-using namespace stb_namespace;
 
 String title = "Stuttgart Gallery A/B";
 String versionDate = "02.02.2021";
@@ -21,12 +19,24 @@ String relayCode = String("UVL");
 
 #define CLR_ORDER NEO_RGB
 
+// --- LED settings --- 
+#define NR_OF_LEDS             1  /* Anzahl der Pixel auf einem Strang (Test 1 Pixel)                   */
+#define STRIPE_CNT             3
+
+#define RFID_1_LED_PIN          9     /* Per Konvention ist dies RFID-Port 1                                */
+#define RFID_2_LED_PIN          6     /* Per Konvention ist dies RFID-Port 2                                */
+#define RFID_3_LED_PIN          5     /* Per Konvention ist dies RFID-Port 3                                */
+#define RFID_4_LED_PIN          3     /* Per Konvention ist dies RFID-Port 4   */
+
+int ledCnts[STRIPE_CNT] = {9};
+int ledPins[STRIPE_CNT] = {RFID_1_LED_PIN, RFID_2_LED_PIN, RFID_3_LED_PIN};
+
 // RFIDs
 #define RFID_AMOUNT 3
 
 //Cards Data
 #define RFID_SOLUTION_SIZE 3  // Length of Char data on NFC tag + char '\n' at the end
-static char RFID_solutions[4][RFID_SOLUTION_SIZE] = {"AH", "SD", "GF"};
+char RFID_solutions[RFID_AMOUNT][4] = {"AH\0", "SD\0", "GF\0"};
 
 const uint16_t UpdateSignalAfterDelay = 5000; /* Zeit, bis Serial print als Online Signal			*/
 
@@ -54,9 +64,12 @@ enum REL_INIT {
 };
 
 #define REL_AMOUNT 2
-const enum REL_PIN relayPinArray[] = {
+
+int relayPinArray[REL_AMOUNT] = {
     REL_ROOM_LI_PIN,
-    REL_SCHW_LI_PIN};
-const enum REL_INIT relayInitArray[] = {
+    REL_SCHW_LI_PIN
+};
+int relayInitArray[REL_AMOUNT] = {
     REL_ROOM_LI_INIT,
-    REL_SCHW_LI_INIT};
+    REL_SCHW_LI_INIT
+};
