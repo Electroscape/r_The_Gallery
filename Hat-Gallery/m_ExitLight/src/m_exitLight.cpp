@@ -180,6 +180,7 @@ void loop() {
     interpreter();
     stageUpdate();
     wdt_reset();
+    delay(5);
 }
 
 
