@@ -8,6 +8,7 @@
 // may aswell move this into the Oled lib?
 #define headLineMaxSize 16
 
+// build to fit into a legacy system so those are not consistent
 #define open   0
 #define closed 1
 
@@ -19,7 +20,7 @@ enum relays {
 
 enum relayInits {
     light_init = closed,
-    exit_init = closed,
+    exit_init = open,
 };
 
 int relayPinArray[relayAmount] = {

@@ -63,7 +63,7 @@ bool passwordInterpreter(char* password) {
     {   
         switch (passNo) {
             case 0: Mother.motherRelay.digitalWrite(light, open); break;
-            case 1: Mother.motherRelay.digitalWrite(exitDoor, open); break;
+            case 1: Mother.motherRelay.digitalWrite(exitDoor, closed); break;
         }
         return true;
     }
