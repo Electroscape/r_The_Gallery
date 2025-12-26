@@ -61,11 +61,23 @@ bool passwordInterpreter(char* password) {
     if ( strlen(passwords[passNo]) == strlen(password) &&
         strncmp(passwords[passNo], password, strlen(passwords[passNo]) ) == 0) 
     {   
-        switch (passNo) {
-            case 0: Mother.motherRelay.digitalWrite(light, open); break;
-            case 1: Mother.motherRelay.digitalWrite(exitDoor, closed); break;
+        switch (Mother.getPolledSlave()) {
+            case light_brain: 
+                if (passNo == light_brain) {
+                    Mother.motherRelay.digitalWrite(light, open); 
+                    return true;
+                } break;
+            case chimney_brain: 
+                if (passNo == chimney_brain) {
+                    Mother.motherRelay.digitalWrite(chimney, open); 
+                    return true;
+                } break;
+            case exit_brain: 
+                if (passNo == exit_brain) {
+                    Mother.motherRelay.digitalWrite(exitDoor, closed); 
+                    return true;
+                } break;
         }
-        return true;
     }
 
     return false;

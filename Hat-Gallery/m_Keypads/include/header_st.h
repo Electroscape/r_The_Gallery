@@ -12,6 +12,13 @@
 #define open   0
 #define closed 1
 
+
+enum brains {
+    light_brain,
+    chimney_brain,
+    exit_brain
+};
+
 enum relays {
     light,
     chimney,
