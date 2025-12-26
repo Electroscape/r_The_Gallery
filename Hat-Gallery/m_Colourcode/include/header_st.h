@@ -2,7 +2,7 @@
 
 #define StageCount 2
 #define PasswordAmount 6
-#define MaxPassLen 10
+#define MaxPassLen 12
 
 
 // may aswell move this into the Oled lib?
@@ -15,6 +15,7 @@
 
 enum brains {
     colour_brain,
+    brain_count
 };
 
 enum relays {
@@ -51,7 +52,7 @@ int flagMapping[StageCount]{
 
 
 char passwords[PasswordAmount][MaxPassLen] = {
-    "1708",
+    "rggbwgrbwg",
 };
 
 

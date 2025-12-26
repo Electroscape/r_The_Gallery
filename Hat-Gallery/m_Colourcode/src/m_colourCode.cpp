@@ -147,8 +147,9 @@ void stageUpdate() {
     strcat(msg, KeywordsList::delimiter.c_str());
     strcat(msg, stageTexts[stageIndex]); 
     
-    Mother.sendCmdToSlave(msg, 0);
-    Mother.sendCmdToSlave(msg, 1);
+    for (int i=0; i<brain_count; i++) {
+        Mother.sendCmdToSlave(msg, i);
+    }
 
     lastStage = stage;
 }
