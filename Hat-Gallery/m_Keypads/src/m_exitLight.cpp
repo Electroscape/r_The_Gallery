@@ -54,9 +54,6 @@ bool passwordInterpreter(char* password) {
     Serial.println(password);
 
     int passNo = Mother.getPolledSlave();
-    if (passNo > 1) {
-        return false;
-    }
 
     if ( strlen(passwords[passNo]) == strlen(password) &&
         strncmp(passwords[passNo], password, strlen(passwords[passNo]) ) == 0) 
@@ -181,7 +178,7 @@ void setup() {
     wdt_enable(WDTO_8S);
 
     // technicall 2 but no need to poll the 2nd as it only receives the colour
-    Mother.rs485SetSlaveCount(2);
+    Mother.rs485SetSlaveCount(brain_count);
     wdt_reset();
 }
 

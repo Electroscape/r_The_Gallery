@@ -16,7 +16,8 @@
 enum brains {
     light_brain,
     chimney_brain,
-    exit_brain
+    exit_brain, 
+    brain_count
 };
 
 enum relays {
