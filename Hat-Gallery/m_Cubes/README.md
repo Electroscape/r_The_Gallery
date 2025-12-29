@@ -1,11 +1,9 @@
-# r_The_Gallery
+# cubes
 
-## Content
-this repository contains the arduino code for the following riddles
- - Secret door: A riddle using a single keypad
- - Cubes: A riddle with RFID readers that give colour feedback via LEDs
- - Color code: A riddle using colored buttons
- - Light alarm exit: A riddle controlling two keypads and an RFID reader 
+## Description
+
+Cubes riddle with shapes, those get read by RFID and illuminate the sockets on the wall.
+RFIDs are three seperate brains, once reader each. The LEDs in the sockets are row, controlled by one brain 
    
 ## Usage
 This project is build  with PlattformIO and the riddles are in individual folders to be opened as a plattformio project.
