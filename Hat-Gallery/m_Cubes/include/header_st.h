@@ -110,8 +110,9 @@ char passwords[PasswordAmount][MaxPassLen] = {
 
 // defines what password/RFIDCode is used at what stage, if none is used its -1
 int passwordMap[PasswordAmount] = {
-    unlock + seperationLocked + seperationUnlocked,
-    unlock + seperationLocked + seperationUnlocked
+    live,
+    live,
+    live
 };
 // make a mapping of what password goes to what stage
 
