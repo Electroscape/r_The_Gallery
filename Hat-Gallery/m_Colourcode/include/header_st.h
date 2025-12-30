@@ -20,19 +20,27 @@ enum brains {
 
 enum relays {
     safe,
+    red_led,
+    green_led,
     relayAmount
 };
 
 enum relayInits {
-    safe_init = closed
+    safe_init = closed,
+    red_led_init = closed,
+    green_led_init = closed
 };
 
 int relayPinArray[relayAmount] = {
-    safe
+    safe,
+    red_led,
+    green_led
 };
 
 int relayInitArray[relayAmount] = {
-    safe_init
+    safe_init,
+    red_led_init,
+    green_led_init
 };
 
 
