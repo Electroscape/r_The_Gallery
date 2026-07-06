@@ -29,9 +29,6 @@ int stageIndex = 0;
 int lastStage = -1;
 int lastInput = 0;
 
-unsigned long redLedTimestamp = millis();
-int ledState = -1;
-
 
 // since stages are binary bit being shifted we cannot use them to index
 void setStageIndex() {
@@ -107,13 +104,9 @@ bool checkForKeypad() {
     if (passwordInterpreter(cmdPtr)) {
         sprintf(noString, "%d", KeypadCmds::correct);
         strcat(msg, noString);
-        Mother.motherRelay.digitalWrite(green_led, open);
     } else {
         sprintf(noString, "%d", KeypadCmds::wrong);
         strcat(msg, noString);
-        Mother.motherRelay.digitalWrite(red_led, open);
-        redLedTimestamp = millis() + 200;
-        ledState = 0;
     }
     // idk why but we had a termination poblem, maybe sprintf doesnt terminate?
     msg[strlen(msg) - 1] = '\0';
@@ -126,7 +119,33 @@ bool checkForKeypad() {
 
 void interpreter() {
     while (Mother.nextRcvdLn()) {
-        checkForKeypad();
+        if (checkForKeypad()) {
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+            delay(300); 
+            Mother.motherRelay.digitalWrite(relays::leds, closed);
+            delay(200);
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+            delay(300); 
+            Mother.motherRelay.digitalWrite(relays::leds, closed);
+            delay(200);
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+        } else {
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+            delay(200); 
+            Mother.motherRelay.digitalWrite(relays::leds, closed);
+            delay(100);
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+            delay(200); 
+            Mother.motherRelay.digitalWrite(relays::leds, closed);
+            delay(100);
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+            delay(200); 
+            Mother.motherRelay.digitalWrite(relays::leds, closed);
+            delay(100);
+            Mother.motherRelay.digitalWrite(relays::leds, open);
+            delay(200); 
+            Mother.motherRelay.digitalWrite(relays::leds, closed);
+        }
     }
 }
 
@@ -175,28 +194,9 @@ void setup() {
     wdt_reset();
 }
 
-void led_updater() {
-    if (ledState < 0 || millis() < redLedTimestamp) { return; }
-    // 200 ms on period, 100ms off period
-    bool isOn = (ledState % 2) == 0;
-    if (isOn) {
-        Mother.motherRelay.digitalWrite(red_led, closed);
-        redLedTimestamp = millis() + 100; 
-    } else {
-        Mother.motherRelay.digitalWrite(red_led, open);
-        redLedTimestamp = millis() + 200; 
-    }
-    ledState++;
-    if (ledState > 5) {
-        ledState = -1;
-    }
-
-}
-
 void loop() {
     Mother.rs485PerformPoll();
     interpreter();
-    led_updater();
     stageUpdate();
     wdt_reset();
     delay(5);

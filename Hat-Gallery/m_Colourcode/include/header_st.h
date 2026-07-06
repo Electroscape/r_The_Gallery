@@ -20,27 +20,23 @@ enum brains {
 
 enum relays {
     safe,
-    red_led,
-    green_led,
+    leds,
     relayAmount
 };
 
 enum relayInits {
     safe_init = closed,
-    red_led_init = closed,
-    green_led_init = closed
+    leds_init = closed
 };
 
 int relayPinArray[relayAmount] = {
     safe,
-    red_led,
-    green_led
+    leds_init
 };
 
 int relayInitArray[relayAmount] = {
     safe_init,
-    red_led_init,
-    green_led_init
+    leds_init
 };
 
 
@@ -55,6 +51,7 @@ int stageSum = ~( ~0 << StageCount );
 
 // could have multiple brains listed here making up a matrix
 int flagMapping[StageCount]{
+    keypadFlag,
     keypadFlag
 };
 
