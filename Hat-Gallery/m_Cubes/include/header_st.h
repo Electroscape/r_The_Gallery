@@ -18,13 +18,12 @@
 
 // FL lamps shall be some industrial reddish light 
 //static constexpr int clrLight[3] = {255,200,120};
-static constexpr int clrLight[3] = {255,0,0};
 
 enum brains {
     socket_rfid_1,
+    leds = socket_rfid_1,
     socket_rfid_2,
     socket_rfid_3,
-    leds,
     brain_cnt
 };
 
@@ -104,8 +103,9 @@ int flagMapping[StageCount] {
 };
 
 char passwords[PasswordAmount][MaxPassLen] = {
-    "SD",   // David
-    "AH"    // Rachel
+    "AH",
+    "SD",
+    "GF"
 };
 
 // defines what password/RFIDCode is used at what stage, if none is used its -1

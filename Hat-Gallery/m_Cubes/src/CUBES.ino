@@ -32,6 +32,9 @@ int stageIndex = 0;
 // doing this so the first time it updates the brains oled without an exta setup line
 int lastStage = -1;
 
+int cardsPresent = 0;
+int cardsCorrect = 0;
+
 
 /**
  * @brief Set the Stage Index object
@@ -60,8 +63,26 @@ void gameReset() {
     for (int relayNo=0; relayNo < relayAmount; relayNo++) {
         Mother.motherRelay.digitalWrite(relayNo, relayInitArray[relayNo]);
     }
+    LED_CMDS::setAllStripsToClr(Mother, brains::leds, LED_CMDS::clrBlack, 100);
 }
 
+
+/**
+ * @brief  
+ * check if the given card is on the correct spot or not, also switches the colour of the sockets 
+ * @param passNo 
+*/
+void checkSolution(int passNo) {
+    int slave = Mother.getPolledSlave();
+    cardsPresent |= (1 << slave);
+    if (passNo == Mother.getPolledSlave()) {
+        cardsCorrect |= (1 << slave);
+    } else {
+        // wrong cards, hence resetting to 0
+        cardsCorrect &= ~(1 << slave);
+    };
+    return;
+}
 
 bool passwordInterpreter(char* password) {
     Mother.STB_.defaultOled.clear();
@@ -70,11 +91,7 @@ bool passwordInterpreter(char* password) {
             if ( strlen(passwords[passNo]) == strlen(password) &&
                 strncmp(passwords[passNo], password, strlen(passwords[passNo]) ) == 0
             ) {
-            
-                delay(500);
-                // since there are only 2 stage with a single valid password
-               
-                stage = stage << 1;
+                checkSolution(passNo);
                 return true;
             }
         }
