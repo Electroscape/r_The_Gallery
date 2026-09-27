@@ -78,7 +78,7 @@ void checkSolution(int passNo) {
     if (passNo == Mother.getPolledSlave()) {
         cardsCorrect |= (1 << slave);
     } else {
-        // wrong cards, hence resetting to 0
+        // wrong cards, hence resetting this slaves bit, ~ is the inversion and &= is bitwise and operator
         cardsCorrect &= ~(1 << slave);
     };
     return;
@@ -145,15 +145,6 @@ void interpreter() {
 }
 
 
-void oledUpdate() {
-    char msg[32] = "";
-    strcpy(msg, oledHeaderCmd.c_str());
-    strcat(msg, KeywordsList::delimiter.c_str());
-    strcat(msg, stageTexts[stageIndex]); 
-    Mother.sendCmdToSlave(msg);
-}
-
-
 void stageActions() {
     wdt_reset();
  
@@ -188,7 +179,6 @@ void stageUpdate() {
 
     Mother.setFlags(0, flagMapping[stageIndex]);
     delay(100);
-    oledUpdate();
     stageActions();
 }
 
@@ -197,7 +187,7 @@ void setup() {
     Mother.begin();
     // starts serial and default oled
     Mother.relayInit(relayPinArray, relayInitArray, relayAmount);
-    MotherIO.ioInit(intputArray, sizeof(intputArray), outputArray, sizeof(outputArray));
+    // MotherIO.ioInit(intputArray, sizeof(intputArray), outputArray, sizeof(outputArray));
 
     // Serial.println("WDT endabled");
     wdt_enable(WDTO_8S);
