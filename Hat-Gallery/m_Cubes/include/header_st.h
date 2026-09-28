@@ -1,6 +1,5 @@
 #pragma once
 
-#define StageCount 11
 #define PasswordAmount 3
 #define MaxPassLen 10
 // may aswell move this into the Oled lib?
@@ -50,6 +49,8 @@ enum outputValues {
 };
 
 
+/*
+
 
 #define outputCnt 3
 #define inputCnt 5
@@ -62,7 +63,7 @@ int intputArray[inputCnt] = {
 int outputArray[outputCnt] = {
     IO_5,                  
 };
-
+*/
 
 // -- relays
 enum relays {
@@ -72,7 +73,7 @@ enum relays {
 
 enum relayInits {
     uvInit = doorClosed,
-    lightInit = doorClosed,
+    lightInit = doorOpen,
 };
 
 int relayPinArray[relayAmount] = {
@@ -89,15 +90,16 @@ int relayInitArray[relayAmount] = {
 enum stages {
     live = 1, 
     solved = 2, 
+    stagecount = 2
 };
 
 // the sum of all stages sprinkled with a bit of black magic
-int stageSum = ~( ~0 << StageCount );
+int stageSum = ~( ~0 << stages::stagecount );
 
 
 // could have multiple brains listed here making up a matrix
 // for now its only an Access module mapped here
-int flagMapping[StageCount] {
+int flagMapping[stages::stagecount] {
     rfidFlag,
     0
 };
@@ -117,7 +119,7 @@ int passwordMap[PasswordAmount] = {
 // make a mapping of what password goes to what stage
 
 
-char stageTexts[StageCount][headLineMaxSize] = {
+char stageTexts[stages::stagecount][headLineMaxSize] = {
     "",                     // setupStage
     "",                     // idle 
 };

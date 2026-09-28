@@ -27,7 +27,7 @@ STB_MOTHER_IO MotherIO;
 
 int stage = live;
 //int stage = idle; //for debugging
-// since stages are single binary bits and we still need to d some indexing
+// since stages are single binary bits and we still need to do some indexing
 int stageIndex = 0;
 // doing this so the first time it updates the brains oled without an exta setup line
 int lastStage = -1;
@@ -40,7 +40,7 @@ int cardsCorrect = 0;
  * @brief Set the Stage Index object
 */
 void setStageIndex() {
-    for (int i=0; i<StageCount; i++) {
+    for (int i=0; i<stages::stagecount; i++) {
         if (stage <= 1 << i) {
             stageIndex = i;
             Serial.print(F("stageIndex:"));
@@ -73,6 +73,7 @@ void gameReset() {
  * @param passNo 
 */
 void checkSolution(int passNo) {
+    Serial.println("Checksolution");
     int slave = Mother.getPolledSlave();
     cardsPresent |= (1 << slave);
     if (passNo == Mother.getPolledSlave()) {
@@ -81,11 +82,53 @@ void checkSolution(int passNo) {
         // wrong cards, hence resetting this slaves bit, ~ is the inversion and &= is bitwise and operator
         cardsCorrect &= ~(1 << slave);
     };
+    Serial.println(cardsCorrect);
+    Serial.println(cardsPresent);
     return;
 }
 
+
+bool passwordInterpreter(char* password) {
+
+    Mother.STB_.defaultOled.clear();
+
+    Serial.print(F("passwordInterpreter: ["));
+    Serial.print(password);
+    Serial.println(F("]"));
+
+    for (int passNo = 0; passNo < PasswordAmount; passNo++) {
+
+        Serial.print(F("Checking "));
+        Serial.print(passNo);
+        Serial.print(F(": "));
+        Serial.println(passwords[passNo]);
+
+        if (passwordMap[passNo] & stage) {
+
+            Serial.println(F("  Stage matches"));
+
+            if (strcmp(passwords[passNo], password) == 0) {
+
+                Serial.println(F("  PASSWORD MATCH"));
+                Serial.println(F("  Calling checkSolution"));
+
+                checkSolution(passNo);
+
+                return true;
+            }
+
+            Serial.println(F("  Password mismatch"));
+        }
+    }
+
+    Serial.println(F("No password matched"));
+    return false;
+}
+/*
 bool passwordInterpreter(char* password) {
     Mother.STB_.defaultOled.clear();
+    Serial.println("passwordInterpreter");
+    Serial.println(password);
     for (int passNo=0; passNo < PasswordAmount; passNo++) {
         if (passwordMap[passNo] & stage) {
             if ( strlen(passwords[passNo]) == strlen(password) &&
@@ -98,7 +141,7 @@ bool passwordInterpreter(char* password) {
     }
     return false;
 }
-
+*/
 
 /**
  * @brief handles evalauation of codes and sends the result to the access module
@@ -106,21 +149,20 @@ bool passwordInterpreter(char* password) {
 */
 void handleResult(char *cmdPtr) {
     cmdPtr = strtok(NULL, KeywordsList::delimiter.c_str());
+    // && (cmdPtr != NULL was in here before
 
-    // prepare return msg with correct or incorrect
-    char msg[10] = "";
-    char noString[3] = "";
-    strcpy(msg, keypadCmd.c_str());
-    strcat(msg, KeywordsList::delimiter.c_str());
-    if (passwordInterpreter(cmdPtr) && (cmdPtr != NULL)) {
-        sprintf(noString, "%d", KeypadCmds::correct);
-        strcat(msg, noString);
-    } else {
-        sprintf(noString, "%d", KeypadCmds::wrong);
-        strcat(msg, noString);
+    // replaces whitespace with nullterminator
+    while (cmdPtr[strlen(cmdPtr) - 1] == ' ') {
+        cmdPtr[strlen(cmdPtr) - 1] = '\0';
     }
-  
-    Mother.sendCmdToSlave(msg);
+    
+    passwordInterpreter(cmdPtr);
+    if (cardsCorrect == (1 << brain_cnt) - 1 ) {
+        // Serial.println(F("ALL CARDS CORRECT -> SOLVED"));
+        stage = solved;
+        // setting to 0 does not stop its, need to update motehr in library
+        // Mother.rs485SetSlaveCount(0);
+    }
 }
 
 
@@ -150,8 +192,13 @@ void stageActions() {
  
     switch (stage) {
         case stages::solved:
+            Mother.relayWrite(uv, !uvInit);
+            Mother.relayWrite(light, !lightInit);
+            delay(5000);
+            Mother.relayWrite(light, lightInit);
         break;
     }
+    wdt_reset();
 }
 
 
@@ -177,7 +224,7 @@ void stageUpdate() {
     // important to do this before stageActions! otherwise we skip stages
     lastStage = stage;
 
-    Mother.setFlags(0, flagMapping[stageIndex]);
+    // Mother.setFlags(0, flagMapping[stageIndex]);
     delay(100);
     stageActions();
 }
