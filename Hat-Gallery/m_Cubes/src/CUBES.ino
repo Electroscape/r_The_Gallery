@@ -21,7 +21,6 @@
 #include "header_st.h"
 
 // using the reset PCF for this
-PCF8574 inputPCF;
 STB_MOTHER Mother;
 STB_MOTHER_IO MotherIO;
 
@@ -34,6 +33,9 @@ int lastStage = -1;
 
 int cardsPresent = 0;
 int cardsCorrect = 0;
+
+const unsigned long cardResetTimeout = 1000; // ms
+unsigned long lastCardReport[brain_cnt] = {0};
 
 
 /**
@@ -67,29 +69,46 @@ void gameReset() {
 }
 
 
+void displayCardStatus() {
+    Mother.STB_.defaultOled.clear();
+
+    Mother.STB_.defaultOled.println(F("CARD STATUS"));
+
+    Mother.STB_.defaultOled.print(F("Present: "));
+    for (int i = brain_cnt - 1; i >= 0; i--) {
+        Mother.STB_.defaultOled.print((cardsPresent >> i) & 1);
+    }
+    Mother.STB_.defaultOled.println();
+
+    Mother.STB_.defaultOled.print(F("Correct: "));
+    for (int i = brain_cnt - 1; i >= 0; i--) {
+        Mother.STB_.defaultOled.print((cardsCorrect >> i) & 1);
+    }
+    Mother.STB_.defaultOled.println();
+}
+
 /**
  * @brief  
  * check if the given card is on the correct spot or not, also switches the colour of the sockets 
  * @param passNo 
 */
-void checkSolution(int passNo) {
-    Serial.println("Checksolution");
-    int slave = Mother.getPolledSlave();
+void checkSolution(int passNo, int slave) {
+
+    LED_CMDS::setStripToClr(Mother, brains::leds, LED_CMDS::clrYellow, 100, slave);
+
+    lastCardReport[slave] = millis();
     cardsPresent |= (1 << slave);
-    if (passNo == Mother.getPolledSlave()) {
+    if (passNo == slave) {
         cardsCorrect |= (1 << slave);
     } else {
-        // wrong cards, hence resetting this slaves bit, ~ is the inversion and &= is bitwise and operator
         cardsCorrect &= ~(1 << slave);
-    };
-    Serial.println(cardsCorrect);
-    Serial.println(cardsPresent);
-    return;
+    }
+    displayCardStatus();
 }
 
 
 bool passwordInterpreter(char* password) {
-
+    int slave = Mother.getPolledSlave();
     Mother.STB_.defaultOled.clear();
 
     Serial.print(F("passwordInterpreter: ["));
@@ -104,19 +123,10 @@ bool passwordInterpreter(char* password) {
         Serial.println(passwords[passNo]);
 
         if (passwordMap[passNo] & stage) {
-
-            Serial.println(F("  Stage matches"));
-
             if (strcmp(passwords[passNo], password) == 0) {
-
-                Serial.println(F("  PASSWORD MATCH"));
-                Serial.println(F("  Calling checkSolution"));
-
-                checkSolution(passNo);
-
+                checkSolution(passNo, slave);
                 return true;
             }
-
             Serial.println(F("  Password mismatch"));
         }
     }
@@ -124,24 +134,31 @@ bool passwordInterpreter(char* password) {
     Serial.println(F("No password matched"));
     return false;
 }
-/*
-bool passwordInterpreter(char* password) {
-    Mother.STB_.defaultOled.clear();
-    Serial.println("passwordInterpreter");
-    Serial.println(password);
-    for (int passNo=0; passNo < PasswordAmount; passNo++) {
-        if (passwordMap[passNo] & stage) {
-            if ( strlen(passwords[passNo]) == strlen(password) &&
-                strncmp(passwords[passNo], password, strlen(passwords[passNo]) ) == 0
-            ) {
-                checkSolution(passNo);
-                return true;
+
+
+void resetCardStatusIfTimeout() {
+
+    for (int slave = 0; slave < brain_cnt; slave++) {
+
+        if (millis() - lastCardReport[slave] >= cardResetTimeout) {
+
+            // Only do anything if this reader currently has a card registered
+            if (cardsPresent & (1 << slave)) {
+
+                Serial.print(F("Reader "));
+                Serial.print(slave);
+                Serial.println(F(" timeout - clearing card"));
+
+                // reseeting the bits of affected reader
+                cardsPresent &= ~(1 << slave);
+                cardsCorrect &= ~(1 << slave);
+                LED_CMDS::setStripToClr(Mother, brains::leds, LED_CMDS::clrBlack, 100, slave);
+
+                displayCardStatus();
             }
         }
     }
-    return false;
 }
-*/
 
 /**
  * @brief handles evalauation of codes and sends the result to the access module
@@ -192,10 +209,15 @@ void stageActions() {
  
     switch (stage) {
         case stages::solved:
+            Mother.STB_.defaultOled.clear();
+            Mother.STB_.defaultOled.println(F("Riddle Solved!"));
             Mother.relayWrite(uv, !uvInit);
             Mother.relayWrite(light, !lightInit);
+            LED_CMDS::setAllStripsToClr(Mother, brains::leds, LED_CMDS::clrGreen, 100);
+            
             delay(5000);
             Mother.relayWrite(light, lightInit);
+            LED_CMDS::setAllStripsToClr(Mother, brains::leds, LED_CMDS::clrGreen, 100);
         break;
     }
     wdt_reset();
@@ -263,9 +285,12 @@ void setup() {
 
 
 void loop() {
-    Mother.rs485PerformPoll();
+    if (stage == live) {
+        Mother.rs485PerformPoll();
+        interpreter();
+        resetCardStatusIfTimeout();
+    }
 
-    interpreter();
     stageUpdate();
     // handleInputs(); 
     wdt_reset();
