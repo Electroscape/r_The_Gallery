@@ -14,8 +14,6 @@
 #include <stb_mother.h>
 #include <stb_keypadCmds.h>
 #include <stb_mother_IO.h>
-#include <stb_oledCmds.h>
-#include <stb_mother_ledCmds.h>
 
 #include "header_st.h"
 
@@ -48,105 +46,111 @@ void setStageIndex() {
 }
 
 
+void blinkIncorrect() {
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+    delay(200); 
+    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    delay(100);
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+    delay(200); 
+    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    delay(100);
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+    delay(200); 
+    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    delay(100);
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+    delay(200); 
+    Mother.motherRelay.digitalWrite(relays::leds, closed);
+}
+
+void blinkCorrect() {
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+    delay(300); 
+    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    delay(200);
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+    delay(300); 
+    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    delay(200);
+    Mother.motherRelay.digitalWrite(relays::leds, open);
+}
+
 bool passwordInterpreter(char* password) {
+    Mother.STB_.defaultOled.clear();
 
-    Serial.println(password);
+    Serial.print(F("passwordInterpreter: ["));
+    Serial.print(password);
+    Serial.println(F("]"));
 
-    int passNo = Mother.getPolledSlave();
+    for (int passNo = 0; passNo < PasswordAmount; passNo++) {
 
-    if ( strlen(passwords[passNo]) == strlen(password) &&
-        strncmp(passwords[passNo], password, strlen(passwords[passNo]) ) == 0) 
-    {   
- 
-        Mother.motherRelay.digitalWrite(safe, open); 
-        return true;
+        Serial.print(F("Checking "));
+        Serial.print(passNo);
+        Serial.print(F(": "));
+        Serial.println(passwords[passNo]);
+
+        if (passwordMap[passNo] & stage) {
+            if (strcmp(passwords[passNo], password) == 0) {
+                stage = stage << 1;
+                return true;
+            }
+            Serial.println(F("  Password mismatch"));
+        }
     }
 
+    Serial.println(F("No password matched"));
+    blinkIncorrect();
     return false;
 }
 
 
-
-// candidate to be moved to a mother specific part of the keypad lib
-bool checkForKeypad() {
-
-    /*
-    Mother.STB_.dbgln("checkforKeypad");
-    Mother.STB_.dbgln(Mother.STB_.rcvdPtr);
-    */
-
-    if (strncmp(keypadCmd.c_str(), Mother.STB_.rcvdPtr, keypadCmd.length()) != 0) {
-        return false;
-    }
-    Mother.sendAck();
-
-    char *cmdPtr = strtok(Mother.STB_.rcvdPtr, KeywordsList::delimiter.c_str());
+/**
+ * @brief handles evalauation of codes and sends the result to the access module
+ * @param cmdPtr 
+*/
+void handleResult(char *cmdPtr) {
     cmdPtr = strtok(NULL, KeywordsList::delimiter.c_str());
-    int cmdNo;
-    sscanf(cmdPtr, "%d", &cmdNo);
+    // && (cmdPtr != NULL was in here before
 
-    /* no evaluation requested, may just be an update for oled display on mother
-    * or being used for things like an interface
-    */
-    if (cmdNo != KeypadCmds::evaluate) { return true; }
-
-    cmdPtr = strtok(NULL, KeywordsList::delimiter.c_str());
-    if (!(cmdPtr != NULL)) {
-        return false;
+    // replaces whitespace with nullterminator
+    while (cmdPtr[strlen(cmdPtr) - 1] == ' ') {
+        cmdPtr[strlen(cmdPtr) - 1] = '\0';
     }
-
-    // prepare return msg with correct or incorrect
-    char msg[10] = "";
-    char noString[3] = "";
-    strcpy(msg, keypadCmd.c_str());
-    strcat(msg, KeywordsList::delimiter.c_str());
-
-    if (passwordInterpreter(cmdPtr)) {
-        sprintf(noString, "%d", KeypadCmds::correct);
-        strcat(msg, noString);
-    } else {
-        sprintf(noString, "%d", KeypadCmds::wrong);
-        strcat(msg, noString);
-    }
-    // idk why but we had a termination poblem, maybe sprintf doesnt terminate?
-    msg[strlen(msg) - 1] = '\0';
-
-    strcat(msg, noString);
-    Mother.sendCmdToSlave(msg);
-    return true;
+    
+    passwordInterpreter(cmdPtr);
 }
+
+void checkForKeypad() {
+
+    if (strncmp(KeywordsList::keypadKeyword.c_str(), Mother.STB_.rcvdPtr, KeywordsList::keypadKeyword.length() ) != 0) {
+        return;
+    } 
+    char *cmdPtr = strtok(Mother.STB_.rcvdPtr, KeywordsList::delimiter.c_str());
+    handleResult(cmdPtr);
+    wdt_reset();
+}
+
 
 
 void interpreter() {
     while (Mother.nextRcvdLn()) {
-        if (checkForKeypad()) {
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-            delay(300); 
-            Mother.motherRelay.digitalWrite(relays::leds, closed);
-            delay(200);
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-            delay(300); 
-            Mother.motherRelay.digitalWrite(relays::leds, closed);
-            delay(200);
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-        } else {
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-            delay(200); 
-            Mother.motherRelay.digitalWrite(relays::leds, closed);
-            delay(100);
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-            delay(200); 
-            Mother.motherRelay.digitalWrite(relays::leds, closed);
-            delay(100);
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-            delay(200); 
-            Mother.motherRelay.digitalWrite(relays::leds, closed);
-            delay(100);
-            Mother.motherRelay.digitalWrite(relays::leds, open);
-            delay(200); 
-            Mother.motherRelay.digitalWrite(relays::leds, closed);
-        }
+        checkForKeypad();
     }
+}
+
+
+
+void stageActions() {
+    wdt_reset();
+ 
+    switch (stage) {
+        case stages::solved:
+            Mother.STB_.defaultOled.println(F("Riddle Solved!"));
+            blinkCorrect();
+        break;
+    }
+    wdt_reset();
 }
 
 
@@ -165,18 +169,9 @@ void stageUpdate() {
         delay(5000);
         wdt_reset();
     }
-    Mother.setFlags(0, flagMapping[stageIndex]);
-
-    char msg[32] = "";
-    strcpy(msg, oledHeaderCmd.c_str());
-    strcat(msg, KeywordsList::delimiter.c_str());
-    strcat(msg, stageTexts[stageIndex]); 
-    
-    for (int i=0; i<brain_count; i++) {
-        Mother.sendCmdToSlave(msg, i);
-    }
 
     lastStage = stage;
+    stageActions();
 }
 
 
@@ -184,6 +179,8 @@ void setup() {
     // starts serial and default oled
     Mother.begin();
     Mother.relayInit(relayPinArray, relayInitArray, relayAmount);
+    Mother.STB_.defaultOled.clear();
+    Mother.STB_.defaultOled.println(F("Farbrätsel"));
     // MotherIO.ioInit(intputArray, sizeof(intputArray), outputArray, sizeof(outputArray));
 
     Serial.println(F("WDT endabled"));

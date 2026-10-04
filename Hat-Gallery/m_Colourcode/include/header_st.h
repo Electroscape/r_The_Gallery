@@ -1,12 +1,8 @@
 #pragma once
 
-#define StageCount 2
-#define PasswordAmount 6
+#define PasswordAmount 1
 #define MaxPassLen 12
 
-
-// may aswell move this into the Oled lib?
-#define headLineMaxSize 16
 
 // build to fit into a legacy system so those are not consistent
 #define open   0
@@ -31,7 +27,7 @@ enum relayInits {
 
 int relayPinArray[relayAmount] = {
     safe,
-    leds_init
+    leds
 };
 
 int relayInitArray[relayAmount] = {
@@ -42,15 +38,17 @@ int relayInitArray[relayAmount] = {
 
 enum stages{
     gameLive = 1,
-    serviceMode = 2
+    solved = 2,
+    serviceMode = 4,
+    StageCount = 3
 };
 
 // the sum of all stages sprinkled with a bit of black magic
-int stageSum = ~( ~0 << StageCount );
+int stageSum = ~( ~0 << stages::StageCount );
 
 
 // could have multiple brains listed here making up a matrix
-int flagMapping[StageCount]{
+int flagMapping[stages::StageCount]{
     keypadFlag,
     keypadFlag
 };
@@ -60,6 +58,8 @@ char passwords[PasswordAmount][MaxPassLen] = {
     "rggbwgrbwg",
 };
 
-
-char stageTexts[StageCount][headLineMaxSize] = {
+// defines what password/RFIDCode is used at what stage, if none is used its -1
+int passwordMap[PasswordAmount] = {
+    gameLive
 };
+
