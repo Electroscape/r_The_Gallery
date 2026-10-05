@@ -123,6 +123,8 @@ void handleResult(char *cmdPtr) {
 
 void checkForKeypad() {
 
+
+    Serial.println(Mother.STB_.rcvdPtr);
     if (strncmp(KeywordsList::keypadKeyword.c_str(), Mother.STB_.rcvdPtr, KeywordsList::keypadKeyword.length() ) != 0) {
         return;
     } 
@@ -187,7 +189,7 @@ void setup() {
     wdt_enable(WDTO_8S);
 
     // technicall 2 but no need to poll the 2nd as it only receives the colour
-    Mother.rs485SetSlaveCount(2);
+    Mother.rs485SetSlaveCount(1);
     wdt_reset();
 }
 
