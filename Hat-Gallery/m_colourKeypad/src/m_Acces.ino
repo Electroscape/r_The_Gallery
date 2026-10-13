@@ -72,8 +72,8 @@ void interpreter() {
 // checks keypad feedback, its only correct/incorrect
 bool checkForValid() {
 
-    // Serial.print("checking: ");
-    // Serial.println(Brain.STB_.rcvdPtr);
+    Serial.print("checking: ");
+    Serial.println(Brain.STB_.rcvdPtr);
     
     if (strncmp(keypadCmd.c_str(), Brain.STB_.rcvdPtr, keypadCmd.length()) == 0) {
         Brain.sendAck();
@@ -85,11 +85,11 @@ bool checkForValid() {
         sscanf(cmdPtr, "%d", &cmdNo);
 
         if (cmdNo == KeypadCmds::correct) {
-            STB_OLED::writeToLine(&Brain.STB_.defaultOled, 3, F("valid"), true);
+            // STB_OLED::writeToLine(&Brain.STB_.defaultOled, 3, F("valid"), true);
             // tone(BUZZER_PIN, 1700, 1000);
+            passKeypad.reset();
         } else {
-
-            STB_OLED::writeToLine(&Brain.STB_.defaultOled, 3, F("invalid"), true);
+            // STB_OLED::writeToLine(&Brain.STB_.defaultOled, 3, F("invalid"), true);
             passKeypad.reset();
         }
         return true;

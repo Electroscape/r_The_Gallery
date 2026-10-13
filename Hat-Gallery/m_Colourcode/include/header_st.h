@@ -21,8 +21,8 @@ enum relays {
 };
 
 enum relayInits {
-    safe_init = closed,
-    leds_init = closed
+    safe_init = open,
+    leds_init = open
 };
 
 int relayPinArray[relayAmount] = {

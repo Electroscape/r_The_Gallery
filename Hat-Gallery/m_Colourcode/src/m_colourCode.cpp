@@ -25,7 +25,13 @@ int stage = gameLive;
 int stageIndex = 0;
 // doing this so the first time it updates the brains oled without an exta setup line
 int lastStage = -1;
-int lastInput = 0;
+
+
+const unsigned long PASSWORD_TIMEOUT_MS = 2000;
+
+size_t lastPasswordLength = 0;
+unsigned long passwordLastChanged = 0;
+bool passwordPending = false;
 
 
 // since stages are binary bit being shifted we cannot use them to index
@@ -47,33 +53,72 @@ void setStageIndex() {
 
 
 void blinkIncorrect() {
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.STB_.defaultOled.println(F("blinkIncorrect"));
+    Mother.relayWrite(relays::leds, closed);
     delay(200); 
-    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    Mother.relayWrite(relays::leds, open);
     delay(100);
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.relayWrite(relays::leds, closed);
     delay(200); 
-    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    Mother.relayWrite(relays::leds, open);
     delay(100);
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.relayWrite(relays::leds, closed);
     delay(200); 
-    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    Mother.relayWrite(relays::leds, open);
     delay(100);
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.relayWrite(relays::leds, closed);
     delay(200); 
-    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    Mother.relayWrite(relays::leds, open);
 }
 
 void blinkCorrect() {
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.STB_.defaultOled.println(F("blinkIncorrect"));
+    Mother.relayWrite(relays::leds, closed);
     delay(300); 
-    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    Mother.relayWrite(relays::leds, open);
     delay(200);
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.relayWrite(relays::leds, closed);
     delay(300); 
-    Mother.motherRelay.digitalWrite(relays::leds, closed);
+    Mother.relayWrite(relays::leds, open);
     delay(200);
-    Mother.motherRelay.digitalWrite(relays::leds, open);
+    Mother.relayWrite(relays::leds, closed);
+}
+
+void displayInput(char* password) {
+    Mother.STB_.defaultOled.clear();
+    Mother.STB_.defaultOled.println(F("Colourcode"));
+    Mother.STB_.defaultOled.println(password);
+}
+
+// @todo: consider refcatoring on wrong pass?
+void checkPasswordTimeout() {
+    if (!passwordPending) {
+        return;
+    }
+
+    if (millis() - passwordLastChanged < PASSWORD_TIMEOUT_MS) {
+        return;
+    }
+
+    char msg[32] = "";
+    char noString[12] = "";
+
+    strcpy(msg, keypadCmd.c_str());
+    strcat(msg, KeywordsList::delimiter.c_str());
+
+    sprintf(noString, "%d", KeypadCmds::wrong);
+
+    strcat(msg, noString);
+
+    msg[strlen(msg) - 1] = '\0';
+    strcat(msg, noString);
+
+    Mother.sendCmdToSlave(msg);
+    blinkIncorrect();
+
+
+    passwordPending = false;
+    lastPasswordLength = 0;
 }
 
 bool passwordInterpreter(char* password) {
@@ -100,7 +145,6 @@ bool passwordInterpreter(char* password) {
     }
 
     Serial.println(F("No password matched"));
-    blinkIncorrect();
     return false;
 }
 
@@ -113,24 +157,42 @@ void handleResult(char *cmdPtr) {
     cmdPtr = strtok(NULL, KeywordsList::delimiter.c_str());
     // && (cmdPtr != NULL was in here before
 
+    if (cmdPtr == NULL || cmdPtr[0] == '\0') {
+        return;
+    }
+
+    size_t len = strlen(cmdPtr);
     // replaces whitespace with nullterminator
     while (cmdPtr[strlen(cmdPtr) - 1] == ' ') {
         cmdPtr[strlen(cmdPtr) - 1] = '\0';
     }
-    
-    passwordInterpreter(cmdPtr);
+
+    if (len == 0) { return; }
+
+    passwordPending = true;
+
+    if (len != lastPasswordLength) {
+        lastPasswordLength = len;
+        passwordLastChanged = millis();
+        
+
+        Serial.print(F("Password length changed: "));
+        Serial.println(len);
+    }
+
+    if (passwordInterpreter(cmdPtr)) {
+        delay(1000);
+        blinkCorrect();
+    }
 }
 
 void checkForKeypad() {
-
-
     Serial.println(Mother.STB_.rcvdPtr);
     if (strncmp(KeywordsList::keypadKeyword.c_str(), Mother.STB_.rcvdPtr, KeywordsList::keypadKeyword.length() ) != 0) {
-        return;
+        char *cmdPtr = strtok(Mother.STB_.rcvdPtr, KeywordsList::delimiter.c_str());
+        handleResult(cmdPtr);
+        wdt_reset();
     } 
-    char *cmdPtr = strtok(Mother.STB_.rcvdPtr, KeywordsList::delimiter.c_str());
-    handleResult(cmdPtr);
-    wdt_reset();
 }
 
 
@@ -196,6 +258,7 @@ void setup() {
 void loop() {
     Mother.rs485PerformPoll();
     interpreter();
+    checkPasswordTimeout();
     stageUpdate();
     wdt_reset();
     delay(5);
