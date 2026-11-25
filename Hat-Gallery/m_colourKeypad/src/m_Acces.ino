@@ -31,6 +31,15 @@ Fragen and access module Requirements
  - ✅ Dynamischer Headline text wie "Enter Code", "Welcome" etc over cmd from Mother
  - ✅ Necessity toggle between RFID and Keypad
  - ✅  wrong rfid may trigger twice
+
+GREEN Wire NC
+Grey Wire NO
+Brown COM
+Black GND
+Red VCC
+
+issue is with COM connection on the PCF
+
 */
 
 
@@ -48,7 +57,11 @@ unsigned long lastKeypadAction = millis();
 void loop() {
 
     wdt_reset();
-    Keypad.getKey();
+    printPCFStates();
+    return;
+
+
+    // Keypad.getKey();
 
 
     if (!Brain.slaveRespond()) {
@@ -106,7 +119,7 @@ void keypad_init() {
     Keypad.addEventListener(keypadEvent);  // Event Listener erstellen
     Keypad.begin(makeKeymap(KeypadKeys));
     Keypad.setHoldTime(5000);
-    Keypad.setDebounceTime(20);
+    Keypad.setDebounceTime(50);
     Brain.STB_.dbgln(F(" ok\n"));
 }
 
@@ -155,6 +168,22 @@ void checkPassword() {
     strcat(msg, KeywordsList::delimiter.c_str());
     strcat(msg, passKeypad.guess);
     Brain.addToBuffer(msg, true); 
+}
+
+void printPCFStates() {
+    Serial.print("PCF States: ");
+
+    for (byte pin = 0; pin < 5; pin++) {
+        Serial.print("P");
+        Serial.print(pin);
+        Serial.print("=");
+
+        Serial.print(digitalRead(pin));
+
+        Serial.print("  ");
+    }
+
+    Serial.println();
 }
 
 
